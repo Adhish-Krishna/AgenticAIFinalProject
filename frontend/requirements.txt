@@ -1,0 +1,5 @@
+streamlit
+pymongo
+python-dotenv
+minio
+langchain_docling
