@@ -52,7 +52,7 @@ def saveContent(content: str, title: str)->str:
     tags = Tags(for_object=True)
     tags["user_id"] = user_id
     tags["chat_id"] = chat_id
-    tags["type"] = "GeneratedPDFContent"
+    tags["type"] = "GeneratedContent"
     client.fput_object(
         bucket_name=MINIO_BUCKET_NAME,
         object_name=object_name,

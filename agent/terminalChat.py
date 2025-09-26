@@ -1,13 +1,14 @@
 from .sudar import SUDARAgent
 from dotenv import load_dotenv
 from .services import ChatService
-from .utils import getUserIdChatId
+from .utils import getUserIdChatId, set_user_chat_context, clear_user_chat_context
 
 def chat():
     user_id, chat_id = getUserIdChatId()
     thread_id = f"{user_id}_{chat_id}"
 
     service = ChatService(db_name="SUDAR", collection_name="chat_history")
+    set_user_chat_context(user_id, chat_id)
 
     agent = SUDARAgent()
     compiled_agent = agent.get_agent()
@@ -46,6 +47,8 @@ def chat():
                         )
                         print(chunk[ag]["messages"][-1].content)
                         break
+
+    clear_user_chat_context()
 
 if __name__ == "__main__":
     chat()

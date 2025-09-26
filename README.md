@@ -69,20 +69,46 @@ Now, set up the Python environment for the agent.
     pip install -r requirements.txt
     ```
 
-### 4. Run the Terminal Chat App
+### 4. Run the API server
 
-Finally, you can run the terminal-based chat application.
+You can now launch the FastAPI server that exposes chat, file upload, and content discovery endpoints.
 
-1.  Navigate back to the root directory of the project:
+```bash
+uvicorn server.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+The server will:
+
+- Stream chat messages through the orchestrated Sudar agent
+- Accept file uploads and trigger background RAG ingestion
+- Provide download links for agent-generated content stored in MinIO
+
+### 5. Start the React chat UI
+
+The `frontend` folder contains a Vite + React interface for managing chats.
+
+1. Copy the example environment file:
 
     ```bash
-    cd ..
+    cd frontend
+    copy .env.example .env  # Windows PowerShell
     ```
 
-2.  Run the terminal chat application:
+2. Install dependencies and start the dev server:
 
     ```bash
-    python -m agent.terminalChat
+    npm install
+    npm run dev
     ```
 
-You should now be able to interact with the Sudar AI Agent directly in your terminal.
+3. Open the printed URL (defaults to `http://localhost:5173`).
+
+Use the UI to create new conversations, upload files, and interact with the agent. The interface assumes a single demo user and derives the base chat ID from environment configuration.
+
+### Optional: Terminal chat experience
+
+If you prefer the original CLI interaction, you can still launch it from the project root after activating the virtual environment:
+
+```bash
+python -m agent.terminalChat
+```

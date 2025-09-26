@@ -1,5 +1,11 @@
 import os
+from contextvars import ContextVar
+from typing import Optional, Tuple
 from envconfig import USER_ID, CHAT_ID
+
+_user_chat_context: ContextVar[Optional[Tuple[str, str]]] = ContextVar(
+    "user_chat_context", default=None
+)
 
 def sanitize_collection_name(name: str) -> str:
     """
@@ -54,7 +60,25 @@ def extract_extension(filepath: str) -> str:
     """
     return os.path.splitext(filepath)[1]
 
+def set_user_chat_context(user_id: str, chat_id: str) -> None:
+    """Sets the contextual user and chat identifiers for downstream tools."""
+
+    _user_chat_context.set((str(user_id), str(chat_id)))
+
+
+def clear_user_chat_context() -> None:
+    """Clears the contextual user and chat identifiers."""
+
+    _user_chat_context.set(None)
+
+
 def getUserIdChatId():
+    """Returns the active user/chat identifiers, falling back to environment defaults."""
+
+    context_value = _user_chat_context.get()
+    if context_value is not None:
+        return context_value
+
     user_id = USER_ID
     chat_id = CHAT_ID
     return user_id, chat_id
