@@ -5,6 +5,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import type { AgentMessage } from "../api/types";
+import { FaUser } from "react-icons/fa";
+import { FaBrain } from "react-icons/fa";
 
 interface MessageBubbleProps {
   message: AgentMessage;
@@ -57,7 +59,7 @@ const MessageBubble: FC<MessageBubbleProps> = ({ message, isOwn = false }: Messa
           <div className="max-w-2xl text-left">
             <div className="mb-2 flex items-center gap-2">
               <span className="text-sm font-medium text-purple-400">
-                Sudar AI (thinking)
+                Teach Assist AI (thinking)
               </span>
               <time className="text-xs text-gemini-textSoft">{timestamp}</time>
             </div>
@@ -87,14 +89,14 @@ const MessageBubble: FC<MessageBubbleProps> = ({ message, isOwn = false }: Messa
       {parsedContent.mainContent.trim() && (
         <div className={clsx("flex w-full gap-4", isOwn ? "justify-end" : "justify-start")}>
           {!isOwn && (
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gemini-accent text-white text-sm font-medium">
-              S
+            <div className="flex h-8 w-8 items-center justify-center rounded-full">
+              <FaBrain />
             </div>
           )}
           <div className={clsx("max-w-2xl", isOwn ? "text-right" : "text-left")}>
             <div className="mb-2 flex items-center gap-2">
               <span className="text-sm font-medium text-gemini-text">
-                {isOwn ? "You" : "Sudar AI"}
+                {isOwn ? "You" : "Teach Assist AI"}
               </span>
               <time className="text-xs text-gemini-textSoft">{timestamp}</time>
             </div>
@@ -158,7 +160,7 @@ const MessageBubble: FC<MessageBubbleProps> = ({ message, isOwn = false }: Messa
           </div>
           {isOwn && (
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gemini-border text-gemini-textSoft text-sm">
-              A
+              <FaUser />
             </div>
           )}
         </div>

@@ -40,13 +40,13 @@ from .schemas import (
     UploadResponse,
 )
 
-logger = logging.getLogger("sudar-api")
+logger = logging.getLogger("teach-assist-api")
 logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(
-    title="SUDAR Agent API",
+    title="Teach Assist Agent API",
     version="1.0.0",
-    description="API server that powers the Sudar AI agent and supporting utilities.",
+    description="API server that powers the Teach Assist AI agent and supporting utilities.",
 )
 
 app.add_middleware(
@@ -128,7 +128,7 @@ async def warm_up() -> None:
     get_minio_client()
     get_chat_service()
     get_compiled_agent()
-    logger.info("SUDAR Agent API ready")
+    logger.info("Teach Assist Agent API ready")
 
 
 @app.get("/api/chats", response_model=List[ChatSummary])

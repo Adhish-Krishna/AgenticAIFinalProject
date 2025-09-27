@@ -7,7 +7,7 @@ from typing import Optional
 
 from minio import Minio
 
-from agent.sudar import SUDARAgent
+from agent.teachAssist import TeachAssistAgent
 from agent.services import ChatService
 from agent.services.vectorService import VectorService
 from agent.services.checkpointService import CheckpointService
@@ -60,7 +60,7 @@ def get_checkpoint_service() -> CheckpointService:
 
 @lru_cache(maxsize=1)
 def get_compiled_agent():
-    agent = SUDARAgent()
+    agent = TeachAssistAgent()
     compiled = agent.get_agent()
     logger.info("Compiled Sudar agent ready for serving.")
     return compiled
@@ -68,7 +68,7 @@ def get_compiled_agent():
 
 def get_compiled_agent_with_model(model_provider: str = None, model_name: str = None):
     """Create a compiled agent with specific model configuration."""
-    agent = SUDARAgent(model_provider=model_provider, model_name=model_name)
+    agent = TeachAssistAgent(model_provider=model_provider, model_name=model_name)
     compiled = agent.get_agent()
     logger.info(f"Compiled Sudar agent with provider: {model_provider}, model: {model_name}")
     return compiled

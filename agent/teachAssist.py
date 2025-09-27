@@ -9,7 +9,7 @@ from langgraph.checkpoint.mongodb import MongoDBSaver
 from pymongo import MongoClient
 from envconfig import GOOGLE_API_KEY, GOOGLE_MODEL_NAME, OLLAMA_MODEL, MODEL_PROVIDER, GROQ_API_KEY, GROQ_MODEL_NAME, MONGO_DB_URI, OLLAMA_THINKING
 
-class SUDARAgent:
+class TeachAssistAgent:
     def __init__(self, model_provider: str = None, model_name: str = None):
         
         # Use provided parameters or fallback to environment variables

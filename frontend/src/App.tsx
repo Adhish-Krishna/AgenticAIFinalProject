@@ -424,7 +424,6 @@ const App = () => {
             </button>
             <div>
               <h1 className="text-xl font-medium text-gemini-text">Teach Assist</h1>
-              <p className="text-xs text-gemini-textSoft">{USER_ID}</p>
             </div>
           </div>
         </header>

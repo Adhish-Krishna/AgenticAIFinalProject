@@ -21,6 +21,9 @@ from .subagents.ReActSubAgent import ReActSubAgent
 from .utils.util import sanitize_collection_name, extract_filename, extract_extension
 from .utils.chat_util import _detect_document_query, _process_input, _process_stream_chunk, _save_chat_session, _load_chat_session
 
+#Agent Class
+from .teachAssist import TeachAssistAgent
+
 __all__ = [
     # Modules
     'tools',
@@ -50,5 +53,8 @@ __all__ = [
     '_process_input',
     '_process_stream_chunk', 
     '_save_chat_session',
-    '_load_chat_session'
+    '_load_chat_session',
+
+    #AgentClass
+    'TeachAssistAgent'
 ]
