@@ -1,8 +1,8 @@
 # **Agentic AI Mini Project**
 ## **Team Members**
 ### 23N206 Adhish Krishna S
-### 23Z    Dinesh T M 
-### 23Z    Sree Anukeysh S
+### 23Z320 Dinesh T M 
+### 23Z369 Sree Anukeysh S
 
 
 # AI Agent Setup
