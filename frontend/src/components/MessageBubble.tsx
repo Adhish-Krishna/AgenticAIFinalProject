@@ -12,30 +12,37 @@ const MessageBubble: FC<MessageBubbleProps> = ({ message, isOwn = false }: Messa
   const timestamp = dayjs(message.timestamp).format("MMM D, HH:mm");
 
   return (
-    <div className={clsx("flex w-full gap-3", isOwn ? "justify-end" : "justify-start")}> 
+    <div className={clsx("flex w-full gap-4", isOwn ? "justify-end" : "justify-start")}>
       {!isOwn && (
-        <div className="mt-1 h-8 w-8 rounded-full bg-brand-500/20 text-center text-xs font-semibold uppercase leading-8 text-brand-500">
-          {message.agent?.slice(0, 2) ?? "AI"}
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gemini-accent text-white text-sm font-medium">
+          S
         </div>
       )}
-      <div
-        className={clsx(
-          "max-w-xl rounded-2xl px-5 py-3 shadow-lg transition",
-          isOwn
-            ? "bg-brand-600 text-white shadow-brand-900/40"
-            : "bg-slate-800/70 text-slate-100 shadow-slate-900/40"
-        )}
-      >
-        <div className="flex items-center justify-between gap-4">
-          <span className="text-xs uppercase tracking-wide text-slate-400">
-            {isOwn ? "You" : message.agent ?? "SUDAR"}
+      <div className={clsx("max-w-2xl", isOwn ? "text-right" : "text-left")}>
+        <div className="mb-2 flex items-center gap-2">
+          <span className="text-sm font-medium text-gemini-text">
+            {isOwn ? "You" : "Sudar AI"}
           </span>
-          <time className="text-[10px] uppercase tracking-widest text-slate-500">{timestamp}</time>
+          <time className="text-xs text-gemini-textSoft">{timestamp}</time>
         </div>
-        <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-100">
-          {message.content}
-        </p>
+        <div
+          className={clsx(
+            "rounded-2xl px-4 py-3 text-gemini-text",
+            isOwn
+              ? "bg-gemini-surface border border-gemini-border"
+              : "bg-transparent"
+          )}
+        >
+          <p className="whitespace-pre-wrap text-base leading-relaxed">
+            {message.content}
+          </p>
+        </div>
       </div>
+      {isOwn && (
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gemini-border text-gemini-textSoft text-sm">
+          A
+        </div>
+      )}
     </div>
   );
 };

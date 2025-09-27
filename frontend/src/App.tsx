@@ -6,8 +6,6 @@ import api from "./api/client";
 import type { AgentMessage, ChatMessageResponse, ChatSummary, FileMetadata } from "./api/types";
 import ChatList from "./components/ChatList";
 import ChatWindow from "./components/ChatWindow";
-import FileUpload from "./components/FileUpload";
-import GeneratedContentList from "./components/GeneratedContentList";
 
 const USER_ID = import.meta.env.VITE_USER_ID ?? "demo-user";
 const INITIAL_CHAT_ID = Number.parseInt(import.meta.env.VITE_INITIAL_CHAT_ID ?? "1", 10);
@@ -139,7 +137,7 @@ const App = () => {
   const uploadedDocs = useMemo(() => uploadedDocsQuery.data ?? [], [uploadedDocsQuery.data]);
 
   return (
-    <div className="flex h-screen bg-slate-950">
+    <div className="flex h-screen bg-gemini-bg text-gemini-text">
       <ChatList
         chats={chatsQuery.data ?? []}
         activeChatId={activeChatId}
@@ -149,43 +147,34 @@ const App = () => {
         collapsed={!sidebarOpen}
       />
       <main className="flex-1 overflow-hidden">
-        <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900/80 px-8 py-4">
-          <div className="flex items-center gap-4">
+        <header className="flex items-center justify-between border-b border-gemini-border bg-gemini-surface/50 px-6 py-3 backdrop-blur-sm">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setSidebarOpen((prev) => !prev)}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-300 transition hover:border-brand-500 hover:text-brand-400"
+              className="rounded-lg border border-gemini-border bg-gemini-surface px-3 py-1.5 text-xs font-medium text-gemini-textSoft transition hover:bg-gemini-border hover:text-gemini-text"
             >
-              {sidebarOpen ? "Hide Chats" : "Show Chats"}
+              {sidebarOpen ? "←" : "→"}
             </button>
             <div>
-              <h1 className="text-lg font-semibold text-slate-100">Sudar AI — Personalized Tutor</h1>
-              <p className="text-xs text-slate-500">Signed in as {USER_ID}</p>
+              <h1 className="text-xl font-medium text-gemini-text">Sudar AI</h1>
+              <p className="text-xs text-gemini-textSoft">{USER_ID}</p>
             </div>
           </div>
-          <div className="rounded-full border border-brand-500 bg-brand-500/10 px-3 py-1 text-xs uppercase tracking-wide text-brand-400">
-            RAG Enabled
-          </div>
         </header>
-        <div className="grid h-[calc(100vh-88px)] grid-cols-1 gap-6 overflow-y-auto p-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+        <div className="h-[calc(100vh-73px)] overflow-hidden bg-gemini-bg">
           <ChatWindow
             chatId={activeChatId}
             messages={activeMessages}
             onSendMessage={handleSendMessage}
+            onUpload={handleUpload}
             isLoadingHistory={messagesQuery.isLoading}
             isSending={sendMessageMutation.isPending}
             uploadedDocs={uploadedDocs}
             isUploading={uploadMutation.isPending}
+            generatedFiles={generatedFiles}
+            userName={USER_ID}
           />
-          <div className="flex flex-col gap-6">
-            <FileUpload
-              onUpload={handleUpload}
-              disabled={uploadMutation.isPending || !activeChatId}
-              documents={uploadedDocs}
-              isLoadingDocuments={uploadedDocsQuery.isLoading}
-            />
-            <GeneratedContentList files={generatedFiles} isLoading={generatedContentQuery.isLoading} />
-          </div>
         </div>
       </main>
     </div>

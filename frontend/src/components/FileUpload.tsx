@@ -50,15 +50,15 @@ const FileUpload: FC<FileUploadProps> = ({
   };
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-4 shadow-inner">
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-300">Upload a document</h3>
+    <div className="rounded-2xl border border-surface-100/60 bg-surface-200/70 p-5 shadow-xl shadow-black/30 backdrop-blur">
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-200">Upload a document</h3>
       <p className="mt-1 text-xs text-slate-500">
         Drop PDFs, DOCX, PPTX or plain text files. They will be added to your current chat and indexed for RAG.
       </p>
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
         <input
           ref={inputRef}
-          className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-brand-500 focus:outline-none"
+          className="flex-1 rounded-lg border border-surface-100 bg-surface-300/80 px-3 py-2 text-sm text-slate-200 focus:border-brand-500 focus:outline-none"
           type="file"
           accept=".pdf,.docx,.pptx,.txt,.md"
           onChange={handleChange}
@@ -68,7 +68,7 @@ const FileUpload: FC<FileUploadProps> = ({
           type="button"
           onClick={handleSubmit}
           disabled={disabled || isUploading}
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-slate-700"
+          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-brand-700/20 transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-surface-100/80"
         >
           Upload
         </button>
@@ -76,7 +76,7 @@ const FileUpload: FC<FileUploadProps> = ({
       {filename && <p className="mt-2 text-xs text-slate-400">Selected: {filename}</p>}
       {isUploading && <LoadingSpinner className="mt-3" label="Uploading & indexing" />}
       {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
-      <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900/40 p-4">
+      <div className="mt-6 rounded-2xl border border-surface-100/60 bg-surface-300/70 p-4">
         <div className="flex items-center justify-between">
           <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Recent documents</h4>
           {isLoadingDocuments && <LoadingSpinner className="text-[11px]" label="Refreshing" />}
@@ -94,7 +94,7 @@ const FileUpload: FC<FileUploadProps> = ({
               return (
                 <li
                   key={doc.object_key}
-                  className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2"
+                  className="flex items-center justify-between rounded-xl border border-surface-100/60 bg-surface-100/70 px-3 py-2"
                 >
                   <div className="min-w-0 pr-3">
                     <p className="truncate font-medium text-slate-200">{doc.file_name}</p>
@@ -104,8 +104,8 @@ const FileUpload: FC<FileUploadProps> = ({
                     className={clsx(
                       "rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wide",
                       {
-                        "bg-emerald-500/10 text-emerald-300": isIndexed,
-                        "bg-amber-500/10 text-amber-300": !isIndexed && !isError,
+                        "bg-emerald-400/10 text-emerald-300": isIndexed,
+                        "bg-amber-400/10 text-amber-300": !isIndexed && !isError,
                         "bg-red-500/10 text-red-300": isError,
                       }
                     )}
