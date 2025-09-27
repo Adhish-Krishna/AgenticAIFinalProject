@@ -48,7 +48,7 @@ const ChatList: FC<ChatListProps> = ({
   }, [openMenuChatId]);
 
   const containerClasses = clsx(
-    "flex h-full flex-col border-r border-gemini-border bg-gemini-bg transition-all duration-300",
+    "flex h-full flex-col border-r border-gemini-border/50 bg-gemini-bg/80 backdrop-blur-xl transition-all duration-300",
     collapsed ? "w-0 overflow-hidden" : "w-64"
   );
 
@@ -170,10 +170,10 @@ const ChatList: FC<ChatListProps> = ({
                         onSelectChat(chat.chat_id);
                       }}
                       className={clsx(
-                        "relative w-full rounded-lg p-3 text-left transition",
+                        "relative w-full rounded-lg p-3 text-left transition backdrop-blur-sm",
                         activeChatId === chat.chat_id
-                          ? "bg-gemini-surface text-gemini-text"
-                          : "text-gemini-textSoft hover:bg-gemini-surface/50"
+                          ? "bg-gemini-surface/70 text-gemini-text border border-gemini-border/50"
+                          : "text-gemini-textSoft hover:bg-gemini-surface/40 hover:border hover:border-gemini-border/30"
                       )}
                     >
                       <div className="flex items-start gap-2">

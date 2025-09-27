@@ -63,7 +63,7 @@ const MessageBubble: FC<MessageBubbleProps> = ({ message, isOwn = false }: Messa
               </span>
               <time className="text-xs text-gemini-textSoft">{timestamp}</time>
             </div>
-            <div className="rounded-2xl bg-purple-900/20 border border-purple-500/30 px-4 py-3 text-gemini-text">
+            <div className="rounded-2xl bg-purple-900/20 border border-purple-500/30 backdrop-blur-sm px-4 py-3 text-gemini-text">
               <div className="prose prose-invert prose-sm max-w-none">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
@@ -102,10 +102,10 @@ const MessageBubble: FC<MessageBubbleProps> = ({ message, isOwn = false }: Messa
             </div>
             <div
               className={clsx(
-                "rounded-2xl px-4 py-3 text-gemini-text",
+                "rounded-2xl px-4 py-3 text-gemini-text backdrop-blur-sm",
                 isOwn
-                  ? "bg-gemini-surface border border-gemini-border"
-                  : "bg-transparent border border-gemini-border/30"
+                  ? "bg-gemini-surface/70 border border-gemini-border/50"
+                  : "bg-gemini-surface/50 border border-gemini-border/30"
               )}
             >
               {isOwn ? (
