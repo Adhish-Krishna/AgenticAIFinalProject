@@ -8,6 +8,8 @@ from pydantic import BaseModel, Field
 
 class ChatMessageRequest(BaseModel):
     message: str = Field(..., min_length=1, description="User message to send to the agent")
+    model_provider: Optional[str] = Field(None, description="Model provider (ollama, groq, google)")
+    model_name: Optional[str] = Field(None, description="Specific model name")
 
 
 class AgentMessage(BaseModel):
@@ -67,3 +69,13 @@ class UpdateChatNameResponse(BaseModel):
     message: str
     chat_id: str
     chat_name: str
+
+
+class ModelInfo(BaseModel):
+    provider: str
+    name: str
+    display_name: str
+
+
+class AvailableModelsResponse(BaseModel):
+    models: List[ModelInfo]

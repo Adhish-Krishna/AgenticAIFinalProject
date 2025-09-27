@@ -89,9 +89,9 @@ const ChatList: FC<ChatListProps> = ({
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm font-bold">
-            S
+            T
           </div>
-          <span className="text-lg font-medium text-gemini-text">Sudar AI</span>
+          <span className="text-lg font-medium text-gemini-text">Teach Assist</span>
         </div>
         <button
           type="button"
@@ -189,9 +189,6 @@ const ChatList: FC<ChatListProps> = ({
                           </p>
                         </div>
                       </div>
-                      {activeChatId === chat.chat_id && (
-                        <div className="absolute right-2 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-gemini-accent"></div>
-                      )}
                     </button>
                     
                     {/* Three-dot menu */}

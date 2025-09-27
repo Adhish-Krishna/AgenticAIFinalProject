@@ -7,16 +7,23 @@ from .prompts import contentResearcherPrompt, worksheetGeneratorPrompt, supervis
 from langchain_groq import ChatGroq
 from langgraph.checkpoint.mongodb import MongoDBSaver
 from pymongo import MongoClient
-from envconfig import GOOGLE_API_KEY, GOOGLE_MODEL_NAME, OLLAMA_MODEL, MODEL_PROVIDER, GROQ_API_KEY, GROQ_MODEL_NAME, MONGO_DB_URI
+from envconfig import GOOGLE_API_KEY, GOOGLE_MODEL_NAME, OLLAMA_MODEL, MODEL_PROVIDER, GROQ_API_KEY, GROQ_MODEL_NAME, MONGO_DB_URI, OLLAMA_THINKING
 
 class SUDARAgent:
-    def __init__(self):
-
-        self.llm_model = ChatOllama(model = OLLAMA_MODEL)
-        if MODEL_PROVIDER == 'groq':
-            self.llm_model = ChatGroq(model = GROQ_MODEL_NAME)
-        elif MODEL_PROVIDER == 'google':
-            self.llm_model = ChatGoogleGenerativeAI(model=GOOGLE_MODEL_NAME)
+    def __init__(self, model_provider: str = None, model_name: str = None):
+        
+        # Use provided parameters or fallback to environment variables
+        provider = model_provider or MODEL_PROVIDER
+        
+        if provider == 'groq':
+            model = model_name or GROQ_MODEL_NAME
+            self.llm_model = ChatGroq(model=model)
+        elif provider == 'google':
+            model = model_name or GOOGLE_MODEL_NAME
+            self.llm_model = ChatGoogleGenerativeAI(model=model)
+        else:  # default to ollama
+            model = model_name or OLLAMA_MODEL
+            self.llm_model = ChatOllama(model=model, reasoning=True if OLLAMA_THINKING == 'true' else False)
 
         self.client = MongoClient(MONGO_DB_URI)
         self.memory = MongoDBSaver(

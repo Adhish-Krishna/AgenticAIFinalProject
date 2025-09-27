@@ -2,9 +2,12 @@ import { ChangeEvent, FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useS
 import toast from 'react-hot-toast';
 import clsx from "clsx";
 import dayjs from "dayjs";
-import type { AgentMessage, FileMetadata } from "../api/types";
+import type { AgentMessage, FileMetadata, AvailableModelsResponse, ModelInfo } from "../api/types";
 import MessageBubble from "./MessageBubble";
 import LoadingSpinner from "./LoadingSpinner";
+import { FaRegFileAlt } from "react-icons/fa";
+
+const BACKEND_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -18,7 +21,7 @@ const removeDocumentMention = (message: string, fileName: string) => {
 interface ChatWindowProps {
   chatId: string | null;
   messages: AgentMessage[];
-  onSendMessage: (content: string) => Promise<void>;
+  onSendMessage: (content: string, model_provider?: string, model_name?: string) => Promise<void>;
   onUpload?: (file: File) => Promise<void>;
   isLoadingHistory?: boolean;
   isSending?: boolean;
@@ -45,6 +48,9 @@ const ChatWindow = ({
   const [isMentionOpen, setIsMentionOpen] = useState<boolean>(false);
   const [mentionQuery, setMentionQuery] = useState<string>("");
   const [mentionStart, setMentionStart] = useState<number | null>(null);
+  const [selectedModel, setSelectedModel] = useState<{provider: string, name: string} | null>(null);
+  const [availableModels, setAvailableModels] = useState<any[]>([]);
+  const [isModelDropdownOpen, setIsModelDropdownOpen] = useState<boolean>(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -53,6 +59,26 @@ const ChatWindow = ({
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, isSending]);
+
+  // Fetch available models on component mount
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/models`);
+        if (response.ok) {
+          const data: AvailableModelsResponse = await response.json();
+          setAvailableModels(data.models);
+          // Set default model (first one)
+          if (data.models.length > 0) {
+            setSelectedModel({ provider: data.models[0].provider, name: data.models[0].name });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch models:', error);
+      }
+    };
+    fetchModels();
+  }, []);
 
   const closeMentionPalette = () => {
     setIsMentionOpen(false);
@@ -133,7 +159,11 @@ const ChatWindow = ({
       closeMentionPalette();
       
       // Send the message (optimistic update will handle UI)
-      await onSendMessage(messageWithContext);
+      await onSendMessage(
+        messageWithContext, 
+        selectedModel?.provider, 
+        selectedModel?.name
+      );
     } catch (err) {
       // On error, restore the draft
       setDraft(trimmed);
@@ -220,7 +250,7 @@ const ChatWindow = ({
                       className="rounded-full p-2.5 text-gemini-textSoft transition hover:bg-gemini-border hover:text-gemini-text"
                       title="Upload file"
                     >
-                      📁
+                    <FaRegFileAlt />
                     </button>
                     <input
                       ref={fileInputRef}
@@ -455,23 +485,50 @@ const ChatWindow = ({
                       }}
                     />
                     <div className="flex items-center gap-2">
-                      {uploadedDocs.length > 0 && (
+                      {/* Model selector */}
+                      <div className="relative">
                         <button
                           type="button"
-                          onClick={() => setIsMentionOpen(!isMentionOpen)}
-                          className="rounded-full p-2 text-gemini-textSoft transition hover:bg-gemini-border hover:text-gemini-text"
-                          title="Reference document"
+                          onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+                          className="rounded-full p-2 text-gemini-textSoft transition hover:bg-gemini-border hover:text-gemini-text flex items-center gap-1"
+                          title="Select AI Model"
                         >
-                          📎
+                          Chat Models 
+                          <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                          </svg>
                         </button>
-                      )}
+                        {isModelDropdownOpen && (
+                          <div className="absolute bottom-full left-0 z-20 mb-2 w-64 rounded-lg border border-gemini-border bg-gemini-surface p-2 shadow-lg">
+                            <div className="mb-2 text-xs font-medium text-gemini-textSoft">Select AI Model:</div>
+                            {availableModels.map((model, index) => (
+                              <button
+                                key={`${model.provider}-${model.name}`}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedModel({ provider: model.provider, name: model.name });
+                                  setIsModelDropdownOpen(false);
+                                }}
+                                className={clsx(
+                                  "w-full text-left px-3 py-2 rounded text-sm transition",
+                                  selectedModel?.provider === model.provider && selectedModel?.name === model.name
+                                    ? "bg-gemini-accent text-white"
+                                    : "hover:bg-gemini-border text-gemini-text"
+                                )}
+                              >
+                                {model.display_name || `${model.provider} - ${model.name}`}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         className="rounded-full p-2 text-gemini-textSoft transition hover:bg-gemini-border hover:text-gemini-text"
                         title="Upload file"
                       >
-                        📁
+                      <FaRegFileAlt />
                       </button>
                       <input
                         ref={fileInputRef}

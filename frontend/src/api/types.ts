@@ -35,6 +35,18 @@ export interface UploadResponse {
 
 export interface ChatMessageRequest {
   message: string;
+  model_provider?: string;
+  model_name?: string;
+}
+
+export interface ModelInfo {
+  provider: string;
+  name: string;
+  display_name: string;
+}
+
+export interface AvailableModelsResponse {
+  models: ModelInfo[];
 }
 
 export interface UpdateChatNameRequest {

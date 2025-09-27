@@ -66,6 +66,14 @@ def get_compiled_agent():
     return compiled
 
 
+def get_compiled_agent_with_model(model_provider: str = None, model_name: str = None):
+    """Create a compiled agent with specific model configuration."""
+    agent = SUDARAgent(model_provider=model_provider, model_name=model_name)
+    compiled = agent.get_agent()
+    logger.info(f"Compiled Sudar agent with provider: {model_provider}, model: {model_name}")
+    return compiled
+
+
 _agent_lock: Optional[asyncio.Lock] = None
 
 

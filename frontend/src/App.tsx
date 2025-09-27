@@ -4,7 +4,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import dayjs from "dayjs";
 
 import api from "./api/client";
-import type { AgentMessage, ChatMessageResponse, ChatSummary, FileMetadata, UpdateChatNameResponse, DeleteChatResponse } from "./api/types";
+import type { AgentMessage, ChatMessageResponse, ChatMessageRequest, ChatSummary, FileMetadata, UpdateChatNameResponse, DeleteChatResponse } from "./api/types";
 import ChatList from "./components/ChatList";
 import ChatWindow from "./components/ChatWindow";
 
@@ -104,14 +104,14 @@ const App = () => {
     }
   }, [activeChatId, chatsQuery.data]);
 
-  const sendMessageMutation = useMutation<ChatMessageResponse, Error, string, { previousMessages?: AgentMessage[] }>({
+  const sendMessageMutation = useMutation<ChatMessageResponse, Error, ChatMessageRequest, { previousMessages?: AgentMessage[] }>({
     mutationKey: ["send-message", activeChatId],
-    mutationFn: async (message: string) => {
+    mutationFn: async (payload: ChatMessageRequest) => {
       if (!activeChatId) throw new Error("Select a chat before sending messages");
-      const response = await api.post<ChatMessageResponse>(`/api/chats/${activeChatId}/messages`, { message });
+      const response = await api.post<ChatMessageResponse>(`/api/chats/${activeChatId}/messages`, payload);
       return response.data;
     },
-    onMutate: async (message: string) => {
+    onMutate: async (payload: ChatMessageRequest) => {
       if (!activeChatId) return { previousMessages: undefined };
       
       // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
@@ -122,7 +122,7 @@ const App = () => {
       
       // Optimistically update to the new value
       const optimisticUserMessage: AgentMessage = {
-        content: message,
+        content: payload.message,
         role: "user",
         timestamp: dayjs().toISOString(),
       };
@@ -135,7 +135,7 @@ const App = () => {
       // Return a context object with the snapshotted value
       return { previousMessages };
     },
-    onError: (err, message, context) => {
+    onError: (err, payload, context) => {
       // If the mutation fails, use the context returned from onMutate to roll back
       if (activeChatId && context?.previousMessages) {
         queryClient.setQueryData(["messages", activeChatId], context.previousMessages);
@@ -268,7 +268,7 @@ const App = () => {
     }
   };
 
-  const handleSendMessage = async (message: string): Promise<void> => {
+  const handleSendMessage = async (message: string, model_provider?: string, model_name?: string): Promise<void> => {
     if (!activeChatId) {
       // Create a new chat first
       const response = await api.get<{ next_chat_id: string }>("/api/chats/next-id");
@@ -302,7 +302,11 @@ const App = () => {
       
       // Send message to the new chat
       try {
-        await api.post<ChatMessageResponse>(`/api/chats/${newChatId}/messages`, { message });
+        const requestPayload: any = { message };
+        if (model_provider) requestPayload.model_provider = model_provider;
+        if (model_name) requestPayload.model_name = model_name;
+        
+        await api.post<ChatMessageResponse>(`/api/chats/${newChatId}/messages`, requestPayload);
         
         // Refresh the messages to get the full conversation including agent response
         await Promise.all([
@@ -318,7 +322,11 @@ const App = () => {
       return;
     }
     
-    await sendMessageMutation.mutateAsync(message);
+    const payload: ChatMessageRequest = { message };
+    if (model_provider) payload.model_provider = model_provider;
+    if (model_name) payload.model_name = model_name;
+    
+    await sendMessageMutation.mutateAsync(payload);
   };
 
   const handleUpload = async (file: File) => {
@@ -405,7 +413,7 @@ const App = () => {
               {sidebarOpen ? "←" : "→"}
             </button>
             <div>
-              <h1 className="text-xl font-medium text-gemini-text">Sudar AI</h1>
+              <h1 className="text-xl font-medium text-gemini-text">Teach Assist</h1>
               <p className="text-xs text-gemini-textSoft">{USER_ID}</p>
             </div>
           </div>

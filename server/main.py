@@ -27,11 +27,13 @@ from .dependencies import (
 )
 from .schemas import (
     AgentMessage,
+    AvailableModelsResponse,
     ChatMessageRequest,
     ChatMessageResponse,
     ChatSummary,
     DeleteChatResponse,
     FileMetadata,
+    ModelInfo,
     NextChatIdResponse,
     UpdateChatNameRequest,
     UpdateChatNameResponse,
@@ -178,12 +180,18 @@ async def send_message_to_agent(
     payload: ChatMessageRequest,
     user_id: str = Depends(get_default_user_id),
     chat_service=Depends(get_chat_service),
-    compiled_agent=Depends(get_compiled_agent),
     agent_lock=Depends(get_agent_lock),
 ):
     user_message = payload.message.strip()
     if not user_message:
         raise HTTPException(status_code=400, detail="Message cannot be empty.")
+
+    # Get the appropriate agent based on model selection
+    from .dependencies import get_compiled_agent_with_model
+    if payload.model_provider and payload.model_name:
+        compiled_agent = get_compiled_agent_with_model(payload.model_provider, payload.model_name)
+    else:
+        compiled_agent = get_compiled_agent()
 
     set_user_chat_context(user_id, chat_id)
 
@@ -437,3 +445,29 @@ async def list_uploaded_documents(
     prefix = f"{user_id}/{chat_id}/"
     objects = minio_client.list_objects(MINIO_BUCKET_NAME, prefix=prefix, recursive=True)
     return _filter_tagged_objects(objects, minio_client, user_id, chat_id, expected_type="UploadedDocument")
+
+
+@app.get("/api/models", response_model=AvailableModelsResponse)
+async def get_available_models():
+    """Get list of available AI models from different providers."""
+    from envconfig import OLLAMA_MODEL, GROQ_MODEL_NAME, GOOGLE_MODEL_NAME
+    
+    models = [
+        ModelInfo(
+            provider="ollama",
+            name=OLLAMA_MODEL or "llama3.2",
+            display_name=f"Ollama - {OLLAMA_MODEL or 'llama3.2'}"
+        ),
+        ModelInfo(
+            provider="groq",
+            name=GROQ_MODEL_NAME or "llama-3.1-70b-versatile",
+            display_name=f"Groq - {GROQ_MODEL_NAME or 'llama-3.1-70b-versatile'}"
+        ),
+        ModelInfo(
+            provider="google",
+            name=GOOGLE_MODEL_NAME or "gemini-pro",
+            display_name=f"Google - {GOOGLE_MODEL_NAME or 'gemini-pro'}"
+        ),
+    ]
+    
+    return AvailableModelsResponse(models=models)
