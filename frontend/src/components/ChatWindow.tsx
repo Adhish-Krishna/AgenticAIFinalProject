@@ -18,6 +18,228 @@ const removeDocumentMention = (message: string, fileName: string) => {
   return withoutMention.replace(/\s{2,}/g, " ").trim();
 };
 
+interface ChatInputProps {
+  draft: string;
+  setDraft: (draft: string) => void;
+  selectedDocument: FileMetadata | null;
+  setSelectedDocument: (doc: FileMetadata | null) => void;
+  isMentionOpen: boolean;
+  setIsMentionOpen: (open: boolean) => void;
+  mentionQuery: string;
+  setMentionQuery: (query: string) => void;
+  mentionStart: number | null;
+  setMentionStart: (start: number | null) => void;
+  selectedModel: {provider: string, name: string} | null;
+  setSelectedModel: (model: {provider: string, name: string} | null) => void;
+  availableModels: any[];
+  isModelDropdownOpen: boolean;
+  setIsModelDropdownOpen: (open: boolean) => void;
+  textareaRef: React.RefObject<HTMLTextAreaElement>;
+  fileInputRef: React.RefObject<HTMLInputElement>;
+  isSending: boolean;
+  uploadedDocs: FileMetadata[];
+  onUpload?: (file: File) => Promise<void>;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  handleDraftChange: (event: ChangeEvent<HTMLTextAreaElement>) => void;
+  handleKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
+  filteredDocs: FileMetadata[];
+  handleSelectDocument: (doc: FileMetadata) => void;
+  closeMentionPalette: () => void;
+}
+
+const ChatInput = ({
+  draft,
+  setDraft,
+  selectedDocument,
+  setSelectedDocument,
+  isMentionOpen,
+  setIsMentionOpen,
+  mentionQuery,
+  setMentionQuery,
+  mentionStart,
+  setMentionStart,
+  selectedModel,
+  setSelectedModel,
+  availableModels,
+  isModelDropdownOpen,
+  setIsModelDropdownOpen,
+  textareaRef,
+  fileInputRef,
+  isSending,
+  uploadedDocs,
+  onUpload,
+  onSubmit,
+  handleDraftChange,
+  handleKeyDown,
+  filteredDocs,
+  handleSelectDocument,
+  closeMentionPalette,
+}: ChatInputProps) => {
+  return (
+    <div className="relative w-full">
+      <form onSubmit={onSubmit}>
+        <div className="w-full rounded-full border border-gemini-border bg-gemini-surface p-2">
+          <div className="flex w-full items-center gap-3 px-5 py-4">
+            <textarea
+              ref={textareaRef}
+              value={draft}
+              onChange={handleDraftChange}
+              onKeyDown={handleKeyDown}
+              className="max-h-32 min-h-[28px] flex-1 resize-none bg-transparent text-lg leading-7 text-gemini-text placeholder-gemini-textSoft focus:outline-none"
+              placeholder="Message Agent (use @ to add context)"
+              disabled={isSending}
+              rows={1}
+              style={{ height: '28px', lineHeight: '28px' }}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = '28px';
+                target.style.height = `${Math.max(28, target.scrollHeight)}px`;
+              }}
+            />
+            <div className="flex items-center gap-2">
+              {/* Model selector */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+                  className="rounded-full p-2 text-gemini-textSoft transition hover:bg-gemini-border hover:text-gemini-text flex items-center gap-1"
+                  title="Select AI Model"
+                >
+                  Chat Models
+                  <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                {isModelDropdownOpen && (
+                  <div className="absolute bottom-full left-0 z-20 mb-2 w-64 rounded-lg border border-gemini-border bg-gemini-surface p-2 shadow-lg">
+                    <div className="mb-2 text-xs font-medium text-gemini-textSoft">Select AI Model:</div>
+                    {availableModels.map((model, index) => (
+                      <button
+                        key={`${model.provider}-${model.name}`}
+                        type="button"
+                        onClick={() => {
+                          setSelectedModel({ provider: model.provider, name: model.name });
+                          setIsModelDropdownOpen(false);
+                        }}
+                        className={clsx(
+                          "w-full text-left px-3 py-2 rounded text-sm transition",
+                          selectedModel?.provider === model.provider && selectedModel?.name === model.name
+                            ? "bg-gemini-accent text-white"
+                            : "hover:bg-gemini-border text-gemini-text"
+                        )}
+                      >
+                        {model.display_name || `${model.provider} - ${model.name}`}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {uploadedDocs.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsMentionOpen(!isMentionOpen)}
+                  className="rounded-full p-2 text-gemini-textSoft transition hover:bg-gemini-border hover:text-gemini-text"
+                  title="Reference document"
+                >
+                  📎
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="rounded-full p-2 text-gemini-textSoft transition hover:bg-gemini-border hover:text-gemini-text"
+                title="Upload file"
+              >
+                <FaRegFileAlt />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.docx,.pptx,.txt,.md"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file && onUpload) {
+                    await onUpload(file);
+                  }
+                }}
+              />
+              <button
+                type="submit"
+                disabled={isSending || !draft.trim()}
+                className="rounded-full bg-gemini-accent p-3 text-white transition hover:bg-gemini-accent/80 disabled:cursor-not-allowed disabled:bg-gemini-border disabled:text-gemini-textSoft"
+              >
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        {isMentionOpen && (
+          <div className="absolute bottom-full left-0 z-10 mb-3 w-full max-w-md rounded-2xl border border-gemini-border bg-gemini-surface/95 p-4 shadow-2xl backdrop-blur-sm">
+            <div className="mb-3 flex items-center gap-2">
+              <svg className="h-4 w-4 text-gemini-accent" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+              </svg>
+              <h4 className="text-sm font-medium text-gemini-text">Reference a document</h4>
+            </div>
+            <ul className="max-h-48 space-y-1 overflow-y-auto">
+              {filteredDocs.length === 0 ? (
+                <li className="flex items-center gap-3 px-3 py-3 text-sm text-gemini-textSoft">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  No documents available
+                </li>
+              ) : (
+                filteredDocs.map((doc) => {
+                  const indexed = doc.status === "indexed";
+                  return (
+                    <li key={doc.object_key}>
+                      <button
+                        type="button"
+                        onClick={() => indexed && handleSelectDocument(doc)}
+                        className={clsx(
+                          "flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition",
+                          indexed
+                            ? "hover:bg-gemini-border text-gemini-text"
+                            : "cursor-not-allowed text-gemini-textSoft"
+                        )}
+                        disabled={!indexed}
+                      >
+                        <div className={clsx(
+                          "flex h-8 w-8 items-center justify-center rounded-lg",
+                          indexed ? "bg-gemini-accent/10" : "bg-gemini-border"
+                        )}>
+                          <svg className={clsx("h-4 w-4", indexed ? "text-gemini-accent" : "text-gemini-textSoft")} fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="truncate font-medium">{doc.file_name}</div>
+                          <div className="text-xs text-gemini-textSoft">
+                            {indexed ? "Ready to reference" : doc.status === "error" ? "Upload failed" : "Processing..."}
+                          </div>
+                        </div>
+                        {indexed && (
+                          <svg className="h-4 w-4 text-gemini-textSoft" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        )}
+                      </button>
+                    </li>
+                  );
+                })
+              )}
+            </ul>
+          </div>
+        )}
+      </form>
+    </div>
+  );
+};
+
 interface ChatWindowProps {
   chatId: string | null;
   messages: AgentMessage[];
@@ -213,69 +435,34 @@ const ChatWindow = ({
           </div>
           <div className="w-full max-w-6xl">
             <div className="relative w-full">
-              <form onSubmit={handleSubmit}>
-                <div className="rounded-full border border-gemini-border bg-gemini-surface p-1.5">
-                  <div className="flex items-center gap-3 px-6 py-3">
-                    <textarea
-                    ref={textareaRef}
-                    value={draft}
-                    onChange={handleDraftChange}
-                    onKeyDown={handleKeyDown}
-                    className="max-h-32 min-h-[32px] flex-1 resize-none bg-transparent text-lg leading-8 text-gemini-text placeholder-gemini-textSoft focus:outline-none"
-                    placeholder="Message Agent (use @ to add context)"
-                    disabled={isSending}
-                    rows={1}
-                    style={{ height: '32px', lineHeight: '32px' }}
-                    onInput={(e) => {
-                      const target = e.target as HTMLTextAreaElement;
-                      target.style.height = '32px';
-                      target.style.height = `${Math.max(32, target.scrollHeight)}px`;
-                    }}
-                  />
-                  <div className="flex items-center gap-1">
-                    {uploadedDocs.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setIsMentionOpen(!isMentionOpen)}
-                        className="rounded-full p-2.5 text-gemini-textSoft transition hover:bg-gemini-border hover:text-gemini-text"
-                        title="Reference document"
-                      >
-                        📎
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="rounded-full p-2.5 text-gemini-textSoft transition hover:bg-gemini-border hover:text-gemini-text"
-                      title="Upload file"
-                    >
-                    <FaRegFileAlt />
-                    </button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".pdf,.docx,.pptx,.txt,.md"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (file && onUpload) {
-                          await onUpload(file);
-                        }
-                      }}
-                    />
-                    <button
-                      type="submit"
-                      disabled={isSending || !draft.trim()}
-                      className="rounded-full bg-gemini-accent p-2.5 text-white transition hover:bg-gemini-accent/80 disabled:cursor-not-allowed disabled:bg-gemini-border disabled:text-gemini-textSoft"
-                    >
-                      <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-                      </svg>
-                    </button>
-                  </div>
-                  </div>
-                </div>
-              </form>
+              <ChatInput
+                draft={draft}
+                setDraft={setDraft}
+                selectedDocument={selectedDocument}
+                setSelectedDocument={setSelectedDocument}
+                isMentionOpen={isMentionOpen}
+                setIsMentionOpen={setIsMentionOpen}
+                mentionQuery={mentionQuery}
+                setMentionQuery={setMentionQuery}
+                mentionStart={mentionStart}
+                setMentionStart={setMentionStart}
+                selectedModel={selectedModel}
+                setSelectedModel={setSelectedModel}
+                availableModels={availableModels}
+                isModelDropdownOpen={isModelDropdownOpen}
+                setIsModelDropdownOpen={setIsModelDropdownOpen}
+                textareaRef={textareaRef}
+                fileInputRef={fileInputRef}
+                isSending={isSending}
+                uploadedDocs={uploadedDocs}
+                onUpload={onUpload}
+                onSubmit={handleSubmit}
+                handleDraftChange={handleDraftChange}
+                handleKeyDown={handleKeyDown}
+                filteredDocs={filteredDocs}
+                handleSelectDocument={handleSelectDocument}
+                closeMentionPalette={closeMentionPalette}
+              />
             </div>
           </div>
         </div>
@@ -470,155 +657,34 @@ const ChatWindow = ({
                   </div>
                 </div>
               )}
-              <div className="relative w-full">
-                <div className="w-full rounded-full border border-gemini-border bg-gemini-surface   p-2">
-                  <div className="flex w-full items-center gap-3 px-5 py-4">
-                    <textarea
-                      ref={textareaRef}
-                      value={draft}
-                      onChange={handleDraftChange}
-                      onKeyDown={handleKeyDown}
-                      className="max-h-32 min-h-[28px] flex-1 resize-none bg-transparent text-lg leading-7 text-gemini-text placeholder-gemini-textSoft focus:outline-none"
-                      placeholder="Message Agent (use @ to add context)"
-                      disabled={isSending}
-                      rows={1}
-                      style={{ height: '28px', lineHeight: '28px' }}
-                      onInput={(e) => {
-                        const target = e.target as HTMLTextAreaElement;
-                        target.style.height = '28px';
-                        target.style.height = `${Math.max(28, target.scrollHeight)}px`;
-                      }}
-                    />
-                    <div className="flex items-center gap-2">
-                      {/* Model selector */}
-                      <div className="relative">
-                        <button
-                          type="button"
-                          onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
-                          className="rounded-full p-2 text-gemini-textSoft transition hover:bg-gemini-border hover:text-gemini-text flex items-center gap-1"
-                          title="Select AI Model"
-                        >
-                          Chat Models 
-                          <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                          </svg>
-                        </button>
-                        {isModelDropdownOpen && (
-                          <div className="absolute bottom-full left-0 z-20 mb-2 w-64 rounded-lg border border-gemini-border bg-gemini-surface p-2 shadow-lg">
-                            <div className="mb-2 text-xs font-medium text-gemini-textSoft">Select AI Model:</div>
-                            {availableModels.map((model, index) => (
-                              <button
-                                key={`${model.provider}-${model.name}`}
-                                type="button"
-                                onClick={() => {
-                                  setSelectedModel({ provider: model.provider, name: model.name });
-                                  setIsModelDropdownOpen(false);
-                                }}
-                                className={clsx(
-                                  "w-full text-left px-3 py-2 rounded text-sm transition",
-                                  selectedModel?.provider === model.provider && selectedModel?.name === model.name
-                                    ? "bg-gemini-accent text-white"
-                                    : "hover:bg-gemini-border text-gemini-text"
-                                )}
-                              >
-                                {model.display_name || `${model.provider} - ${model.name}`}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="rounded-full p-2 text-gemini-textSoft transition hover:bg-gemini-border hover:text-gemini-text"
-                        title="Upload file"
-                      >
-                      <FaRegFileAlt />
-                      </button>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".pdf,.docx,.pptx,.txt,.md"
-                        className="hidden"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (file && onUpload) {
-                            await onUpload(file);
-                          }
-                        }}
-                      />
-                      <button
-                        type="submit"
-                        disabled={isSending || !draft.trim()}
-                        className="rounded-full bg-gemini-accent p-3 text-white transition hover:bg-gemini-accent/80 disabled:cursor-not-allowed disabled:bg-gemini-border disabled:text-gemini-textSoft"
-                      >
-                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                {isMentionOpen && (
-                  <div className="absolute bottom-full left-0 z-10 mb-3 w-full max-w-md rounded-2xl border border-gemini-border bg-gemini-surface/95 p-4 shadow-2xl backdrop-blur-sm">
-                    <div className="mb-3 flex items-center gap-2">
-                      <svg className="h-4 w-4 text-gemini-accent" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
-                      </svg>
-                      <h4 className="text-sm font-medium text-gemini-text">Reference a document</h4>
-                    </div>
-                    <ul className="max-h-48 space-y-1 overflow-y-auto">
-                      {filteredDocs.length === 0 ? (
-                        <li className="flex items-center gap-3 px-3 py-3 text-sm text-gemini-textSoft">
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          No documents available
-                        </li>
-                      ) : (
-                        filteredDocs.map((doc) => {
-                          const indexed = doc.status === "indexed";
-                          return (
-                            <li key={doc.object_key}>
-                              <button
-                                type="button"
-                                onClick={() => indexed && handleSelectDocument(doc)}
-                                className={clsx(
-                                  "flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition",
-                                  indexed
-                                    ? "hover:bg-gemini-border text-gemini-text"
-                                    : "cursor-not-allowed text-gemini-textSoft"
-                                )}
-                                disabled={!indexed}
-                              >
-                                <div className={clsx(
-                                  "flex h-8 w-8 items-center justify-center rounded-lg",
-                                  indexed ? "bg-gemini-accent/10" : "bg-gemini-border"
-                                )}>
-                                  <svg className={clsx("h-4 w-4", indexed ? "text-gemini-accent" : "text-gemini-textSoft")} fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
-                                  </svg>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="truncate font-medium">{doc.file_name}</div>
-                                  <div className="text-xs text-gemini-textSoft">
-                                    {indexed ? "Ready to reference" : doc.status === "error" ? "Upload failed" : "Processing..."}
-                                  </div>
-                                </div>
-                                {indexed && (
-                                  <svg className="h-4 w-4 text-gemini-textSoft" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                  </svg>
-                                )}
-                              </button>
-                            </li>
-                          );
-                        })
-                      )}
-                    </ul>
-                  </div>
-                )}
-              </div>
+              <ChatInput
+                draft={draft}
+                setDraft={setDraft}
+                selectedDocument={selectedDocument}
+                setSelectedDocument={setSelectedDocument}
+                isMentionOpen={isMentionOpen}
+                setIsMentionOpen={setIsMentionOpen}
+                mentionQuery={mentionQuery}
+                setMentionQuery={setMentionQuery}
+                mentionStart={mentionStart}
+                setMentionStart={setMentionStart}
+                selectedModel={selectedModel}
+                setSelectedModel={setSelectedModel}
+                availableModels={availableModels}
+                isModelDropdownOpen={isModelDropdownOpen}
+                setIsModelDropdownOpen={setIsModelDropdownOpen}
+                textareaRef={textareaRef}
+                fileInputRef={fileInputRef}
+                isSending={isSending}
+                uploadedDocs={uploadedDocs}
+                onUpload={onUpload}
+                onSubmit={handleSubmit}
+                handleDraftChange={handleDraftChange}
+                handleKeyDown={handleKeyDown}
+                filteredDocs={filteredDocs}
+                handleSelectDocument={handleSelectDocument}
+                closeMentionPalette={closeMentionPalette}
+              />
             </div>
           </form>
         </div>
