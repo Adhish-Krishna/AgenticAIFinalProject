@@ -105,7 +105,12 @@ const ChatInput = ({
                   className="rounded-full p-2 text-gemini-textSoft transition hover:bg-gemini-border hover:text-gemini-text flex items-center gap-1"
                   title="Select AI Model"
                 >
-                  Chat Models
+                  {selectedModel ? (
+                    availableModels.find(m => m.provider === selectedModel.provider && m.name === selectedModel.name)?.display_name || 
+                    `${selectedModel.provider} - ${selectedModel.name}`
+                  ) : (
+                    "Chat Models"
+                  )}
                   <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
@@ -134,16 +139,6 @@ const ChatInput = ({
                   </div>
                 )}
               </div>
-              {uploadedDocs.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setIsMentionOpen(!isMentionOpen)}
-                  className="rounded-full p-2 text-gemini-textSoft transition hover:bg-gemini-border hover:text-gemini-text"
-                  title="Reference document"
-                >
-                  📎
-                </button>
-              )}
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
