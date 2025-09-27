@@ -1,3 +1,10 @@
+# **Agentic AI Mini Project**
+## **Team Members**
+### 23N206 Adhish Krishna S
+### 23Z    Dinesh T M 
+### 23Z    Sree Anukeysh S
+
+
 # AI Agent Setup
 
 This guide will walk you through the setup process for the Sudar AI Agent project.
