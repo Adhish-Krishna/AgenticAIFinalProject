@@ -4,6 +4,15 @@ import type { AgentMessage, FileMetadata } from "../api/types";
 import MessageBubble from "./MessageBubble";
 import LoadingSpinner from "./LoadingSpinner";
 
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const removeDocumentMention = (message: string, fileName: string) => {
+  const escapedName = escapeRegExp(fileName);
+  const mentionRegex = new RegExp(`(^|\\s)@${escapedName}(?=\\b)`, "gi");
+  const withoutMention = message.replace(mentionRegex, (match, leading) => leading ?? "");
+  return withoutMention.replace(/\s{2,}/g, " ").trim();
+};
+
 interface ChatWindowProps {
   chatId: string | null;
   messages: AgentMessage[];
@@ -103,7 +112,7 @@ const ChatWindow = ({
     }
 
     const messageWithContext = selectedDocument
-      ? `this is the object id ${selectedDocument.object_key} ${trimmed}`
+      ? `this is the object id ${selectedDocument.object_key} ${removeDocumentMention(trimmed, selectedDocument.file_name)}`.trim()
       : trimmed;
 
     try {

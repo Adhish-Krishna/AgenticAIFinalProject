@@ -5,7 +5,7 @@ import logging
 import os
 import re
 from datetime import datetime, timedelta
-from typing import Iterable, List
+from typing import Any, Iterable, List
 
 from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -88,6 +88,34 @@ def _schedule_ingestion(background_tasks: BackgroundTasks, object_key: str, user
     background_tasks.add_task(ingest)
 
 
+def _stringify_content(content: Any) -> str:
+    if isinstance(content, str):
+        return content
+
+    if isinstance(content, list):
+        parts: List[str] = []
+        for item in content:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict):
+                text = item.get("text")
+                if text is not None:
+                    parts.append(str(text))
+            else:
+                text = getattr(item, "text", None)
+                if text is not None:
+                    parts.append(str(text))
+                else:
+                    parts.append(str(item))
+        return "".join(parts)
+
+    text = getattr(content, "text", None)
+    if text is not None:
+        return str(text)
+
+    return str(content)
+
+
 @app.on_event("startup")
 async def warm_up() -> None:
     get_minio_client()
@@ -131,7 +159,7 @@ async def get_chat_history(
         normalized.append(
             AgentMessage(
                 role=normalized_role,
-                content=message.get("message", ""),
+                content=_stringify_content(message.get("message", "")),
                 agent=message.get("agent"),
                 timestamp=message.get("timestamp"),
             )
@@ -181,7 +209,8 @@ async def send_message_to_agent(
                     ):
                         for agent_name in ("supervisor", "ContentResearcher", "WorksheetGenerator"):
                             if agent_name in chunk:
-                                message_content = chunk[agent_name]["messages"][-1].content
+                                raw_content = chunk[agent_name]["messages"][-1].content
+                                message_content = _stringify_content(raw_content)
                                 chat_service.insertAIMessage(
                                     message=message_content,
                                     user_id=user_id,

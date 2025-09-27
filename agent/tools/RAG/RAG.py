@@ -1,4 +1,3 @@
-from .Chunking import ChunkDocument
 from .Retrieve import RetrieveChunks
 from rich import print as rprint
 from typing import Union
@@ -7,44 +6,27 @@ from langchain_core.tools import StructuredTool
 
 def RAG(object_key: str, query: str) -> Union[str, None]:
   '''
-  Retrieves context from the vector database based on the given query
+  Retrieves context from the vector database based on the given query.
+  Assumes the document has already been chunked and embedded by the ingestion pipeline.
   Arguments:
     object_key: str - the object key of the document in MinIO to query about
     query : str - the query from the user
-    user_id: str - the user identifier for filtering (default: "teacher001")
-    chat_id: str - the chat identifier for filtering (default: "1")
   Output:
     context : str | None - the retrieved context from the vector database or else return None
   '''
 
   try:
+    retrieve = RetrieveChunks(object_key, query)
+    chunks: list = retrieve.retrieveChunks()
+
+    if not chunks:
+      rprint("[yellow]No relevant chunks retrieved for query.[/yellow]")
+      return None
+
     context = ""
-    # Parse and chunk the document
-    chunking = ChunkDocument(object_key)
-
-    # This part seems to be for checking if chunks are already in the DB.
-    # With MinIO, we might always want to parse, or have a more robust check.
-    # For now, we assume we process the object from MinIO.
-    # A check could be added here to see if embeddings for this object_key already exist.
-    
-    try:
-      chunking.parseDocument()
-      chunking.initializeEmbeddings()
-      chunking.storeEmbeddings()
-    except Exception as e:
-      rprint(f"[red]Error during document processing and embedding: {str(e)}[/red]")
-      return None
-
-    # Retrieve context based on the query
-    try:
-      retrieve = RetrieveChunks(object_key, query)
-      chunks: list = retrieve.retrieveChunks()
-    except Exception as e:
-      rprint(f"[red]Error during chunk retrieval: {str(e)}[/red]")
-      return None
-
-    for j, i in enumerate(chunks):
-      context += f"Document: {j+1}\n{i['content']}\n"
+    for j, chunk in enumerate(chunks):
+      content = chunk.get("content", "")
+      context += f"Document: {j + 1}\n{content}\n"
 
     return context
 

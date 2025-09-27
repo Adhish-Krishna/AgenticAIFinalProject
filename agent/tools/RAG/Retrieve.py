@@ -38,13 +38,9 @@ class RetrieveChunks:
         query_filter = Filter(
           must=[
             FieldCondition(
-              key="user_id",
-              match=MatchValue(value=self.user_id)
+              key="object_key",
+              match=MatchValue(value=self.object_key)
             ),
-            FieldCondition(
-              key="chat_id", 
-              match=MatchValue(value=self.chat_id)
-            )
           ]
         )
         
