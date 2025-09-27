@@ -126,12 +126,17 @@ const ChatWindow = ({
 
     try {
       setError(null);
-      await onSendMessage(messageWithContext);
+      // Clear the input immediately for better UX
       setDraft("");
       setSelectedDocument(null);
       closeMentionPalette();
+      
+      // Send the message (optimistic update will handle UI)
+      await onSendMessage(messageWithContext);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to send message");
+      // On error, restore the draft
+      setDraft(trimmed);
     }
   };
 
@@ -179,32 +184,32 @@ const ChatWindow = ({
             <p className="text-xl text-gemini-textSoft">How can I help you today?</p>
           </div>
           <div className="w-full">
-            <div className="relative mx-auto max-w-2xl">
+            <div className="relative mx-auto max-w-3xl">
               <form onSubmit={handleSubmit}>
-                <div className="rounded-full border border-gemini-border bg-gemini-surface p-2">
-                  <div className="flex items-center gap-3 px-5 py-4">
+                <div className="rounded-full border border-gemini-border bg-gemini-surface p-1.5">
+                  <div className="flex items-center gap-3 px-6 py-3">
                     <textarea
                     ref={textareaRef}
                     value={draft}
                     onChange={handleDraftChange}
                     onKeyDown={handleKeyDown}
-                    className="max-h-32 min-h-[28px] flex-1 resize-none bg-transparent text-lg leading-7 text-gemini-text placeholder-gemini-textSoft focus:outline-none"
+                    className="max-h-32 min-h-[32px] flex-1 resize-none bg-transparent text-lg leading-8 text-gemini-text placeholder-gemini-textSoft focus:outline-none"
                     placeholder="Message SUDAR (use @ to add context)"
                     disabled={isSending}
                     rows={1}
-                    style={{ height: '28px', lineHeight: '28px' }}
+                    style={{ height: '32px', lineHeight: '32px' }}
                     onInput={(e) => {
                       const target = e.target as HTMLTextAreaElement;
-                      target.style.height = '28px';
-                      target.style.height = `${Math.max(28, target.scrollHeight)}px`;
+                      target.style.height = '32px';
+                      target.style.height = `${Math.max(32, target.scrollHeight)}px`;
                     }}
                   />
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     {uploadedDocs.length > 0 && (
                       <button
                         type="button"
                         onClick={() => setIsMentionOpen(!isMentionOpen)}
-                        className="rounded-full p-2 text-gemini-textSoft transition hover:bg-gemini-border hover:text-gemini-text"
+                        className="rounded-full p-2.5 text-gemini-textSoft transition hover:bg-gemini-border hover:text-gemini-text"
                         title="Reference document"
                       >
                         📎
@@ -213,7 +218,7 @@ const ChatWindow = ({
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="rounded-full p-2 text-gemini-textSoft transition hover:bg-gemini-border hover:text-gemini-text"
+                      className="rounded-full p-2.5 text-gemini-textSoft transition hover:bg-gemini-border hover:text-gemini-text"
                       title="Upload file"
                     >
                       📁
@@ -233,9 +238,9 @@ const ChatWindow = ({
                     <button
                       type="submit"
                       disabled={isSending || !draft.trim()}
-                      className="rounded-full bg-gemini-accent p-3 text-white transition hover:bg-gemini-accent/80 disabled:cursor-not-allowed disabled:bg-gemini-border disabled:text-gemini-textSoft"
+                      className="rounded-full bg-gemini-accent p-2.5 text-white transition hover:bg-gemini-accent/80 disabled:cursor-not-allowed disabled:bg-gemini-border disabled:text-gemini-textSoft"
                     >
-                      <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                      <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
                       </svg>
                     </button>

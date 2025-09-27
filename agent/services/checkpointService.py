@@ -35,8 +35,14 @@ class CheckpointService:
                 if deleted_count > 0:
                     console.print(f"Deleted {deleted_count} checkpoints from {collection_name} for chat {chat_id}", style="green")
             
-            # Also check for any documents with chat_id field directly
+            # Also check for any documents with chat_id field directly, but exclude chat_history
+            # as that should be handled by ChatService
+            excluded_collections = {'chat_history'}
+            
             for collection_name in self.db.list_collection_names():
+                if collection_name in excluded_collections:
+                    continue
+                    
                 collection = self.db[collection_name]
                 
                 # Try to delete by chat_id if the field exists

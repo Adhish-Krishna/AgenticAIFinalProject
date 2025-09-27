@@ -60,12 +60,42 @@ const App = () => {
     }
   }, [activeChatId, chatsQuery.data]);
 
-  const sendMessageMutation = useMutation<ChatMessageResponse, Error, string>({
+  const sendMessageMutation = useMutation<ChatMessageResponse, Error, string, { previousMessages?: AgentMessage[] }>({
     mutationKey: ["send-message", activeChatId],
     mutationFn: async (message: string) => {
       if (!activeChatId) throw new Error("Select a chat before sending messages");
       const response = await api.post<ChatMessageResponse>(`/api/chats/${activeChatId}/messages`, { message });
       return response.data;
+    },
+    onMutate: async (message: string) => {
+      if (!activeChatId) return { previousMessages: undefined };
+      
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: ["messages", activeChatId] });
+      
+      // Snapshot the previous value
+      const previousMessages = queryClient.getQueryData<AgentMessage[]>(["messages", activeChatId]);
+      
+      // Optimistically update to the new value
+      const optimisticUserMessage: AgentMessage = {
+        content: message,
+        role: "user",
+        timestamp: dayjs().toISOString(),
+      };
+      
+      queryClient.setQueryData<AgentMessage[]>(["messages", activeChatId], (old) => [
+        ...(old || []),
+        optimisticUserMessage,
+      ]);
+      
+      // Return a context object with the snapshotted value
+      return { previousMessages };
+    },
+    onError: (err, message, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (activeChatId && context?.previousMessages) {
+        queryClient.setQueryData(["messages", activeChatId], context.previousMessages);
+      }
     },
     onSuccess: async () => {
       if (!activeChatId) return;
@@ -147,8 +177,56 @@ const App = () => {
     }
   };
 
-  const handleSendMessage = async (message: string) => {
-    if (!activeChatId) throw new Error("Select a chat first");
+  const handleSendMessage = async (message: string): Promise<void> => {
+    if (!activeChatId) {
+      // Create a new chat first
+      const response = await api.get<{ next_chat_id: string }>("/api/chats/next-id");
+      const newChatId = response.data.next_chat_id ?? String(INITIAL_CHAT_ID + 1);
+      setActiveChatId(newChatId);
+      
+      // Add optimistic chat to the list
+      queryClient.setQueryData<ChatSummary[]>(["chats"], (prev: ChatSummary[] = []) => {
+        const exists = prev.some((chat) => chat.chat_id === newChatId);
+        if (exists) return prev;
+        return [
+          {
+            chat_id: newChatId,
+            chat_name: `Conversation ${newChatId}`,
+            message_count: 0,
+            first_message_time: dayjs().toISOString(),
+            last_message_time: dayjs().toISOString(),
+          },
+          ...prev,
+        ];
+      });
+      
+      // Add optimistic user message
+      const optimisticUserMessage: AgentMessage = {
+        content: message,
+        role: "user",
+        timestamp: dayjs().toISOString(),
+      };
+      
+      queryClient.setQueryData<AgentMessage[]>(["messages", newChatId], [optimisticUserMessage]);
+      
+      // Send message to the new chat
+      try {
+        await api.post<ChatMessageResponse>(`/api/chats/${newChatId}/messages`, { message });
+        
+        // Refresh the messages to get the full conversation including agent response
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["messages", newChatId] }),
+          queryClient.invalidateQueries({ queryKey: ["chats"] }),
+        ]);
+      } catch (error) {
+        // On error, remove the optimistic updates
+        queryClient.setQueryData<AgentMessage[]>(["messages", newChatId], []);
+        throw error;
+      }
+      
+      return;
+    }
+    
     await sendMessageMutation.mutateAsync(message);
   };
 
