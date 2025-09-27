@@ -4,6 +4,7 @@ import io
 import logging
 import os
 import re
+import uuid
 from datetime import datetime, timedelta
 from typing import Any, Iterable, List
 
@@ -14,7 +15,7 @@ from minio.error import S3Error
 
 from agent.tools.RAG.Chunking import ChunkDocument
 from agent.utils import clear_user_chat_context, set_user_chat_context
-from envconfig import CHAT_ID, MINIO_BUCKET_NAME
+from envconfig import MINIO_BUCKET_NAME
 
 from .dependencies import (
     get_agent_lock,
@@ -145,11 +146,9 @@ async def get_next_chat_identifier(
     user_id: str = Depends(get_default_user_id),
     chat_service=Depends(get_chat_service),
 ):
-    chats = chat_service.getUserChatList(user_id)
-    numeric_ids = [int(chat["chat_id"]) for chat in chats if str(chat["chat_id"]).isdigit()]
-    base_chat_id = int(CHAT_ID or "1")
-    next_id = (max(numeric_ids) + 1) if numeric_ids else base_chat_id + 1
-    return NextChatIdResponse(next_chat_id=str(next_id))
+    # Generate a new UUID for the chat ID
+    next_id = str(uuid.uuid4())
+    return NextChatIdResponse(next_chat_id=next_id)
 
 
 @app.get("/api/chats/{chat_id}", response_model=List[AgentMessage])

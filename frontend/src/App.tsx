@@ -9,7 +9,6 @@ import ChatList from "./components/ChatList";
 import ChatWindow from "./components/ChatWindow";
 
 const USER_ID = import.meta.env.VITE_USER_ID ?? "demo-user";
-const INITIAL_CHAT_ID = Number.parseInt(import.meta.env.VITE_INITIAL_CHAT_ID ?? "1", 10);
 
 const App = () => {
   const queryClient = useQueryClient();
@@ -249,7 +248,7 @@ const App = () => {
   const handleCreateChat = async () => {
     try {
       const response = await api.get<{ next_chat_id: string }>("/api/chats/next-id");
-      const newChatId = response.data.next_chat_id ?? String(INITIAL_CHAT_ID + 1);
+      const newChatId = response.data.next_chat_id;
       setActiveChatId(newChatId);
       queryClient.setQueryData<ChatSummary[]>(["chats"], (prev: ChatSummary[] = []) => {
         const exists = prev.some((chat) => chat.chat_id === newChatId);
@@ -282,7 +281,7 @@ const App = () => {
     if (!activeChatId) {
       // Create a new chat first
       const response = await api.get<{ next_chat_id: string }>("/api/chats/next-id");
-      const newChatId = response.data.next_chat_id ?? String(INITIAL_CHAT_ID + 1);
+      const newChatId = response.data.next_chat_id;
       setActiveChatId(newChatId);
       
       // Add optimistic chat to the list
