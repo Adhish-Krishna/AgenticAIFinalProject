@@ -52,10 +52,10 @@ const App = () => {
 
   useEffect(() => {
     const currentCount = generatedContentQuery.data?.length || 0;
-    if (currentCount > previousGeneratedCount && previousGeneratedCount > 0) {
+    if (currentCount > previousGeneratedCount) {
       const newFilesCount = currentCount - previousGeneratedCount;
       toast.success(
-        `${newFilesCount} new file${newFilesCount > 1 ? 's' : ''} generated!`,
+        `${newFilesCount} new content${newFilesCount > 1 ? 's are' : ' is'} generated!`,
         {
           icon: '📄',
           duration: 3000,
@@ -81,20 +81,30 @@ const App = () => {
   // Track when files are indexed (appear in uploaded files list)
   useEffect(() => {
     const currentFiles = uploadedDocsQuery.data || [];
-    
+
     // Find newly appeared files by comparing file names
     if (previousUploadedFiles.length > 0) {
+      const previousFileMap = new Map(previousUploadedFiles.map(f => [f.file_name, f]));
+      currentFiles.forEach(file => {
+        const prev = previousFileMap.get(file.file_name);
+        if (prev && prev.status === 'processing' && file.status === 'indexed') {
+          toast.success(`${file.file_name} has been indexed and is ready for use!`, {
+            icon: '📚',
+            duration: 3000,
+          });
+        }
+      });
+      // Also keep the previous logic for new files appearing as indexed
       const previousFileNames = new Set(previousUploadedFiles.map(f => f.file_name));
-      const newFiles = currentFiles.filter(f => !previousFileNames.has(f.file_name));
-      
+      const newFiles = currentFiles.filter(f => !previousFileNames.has(f.file_name) && f.status === 'indexed');
       newFiles.forEach(file => {
-        toast.success(`${file.file_name} has been indexed and ready for use!`, {
+        toast.success(`${file.file_name} has been indexed and is ready for use!`, {
           icon: '📚',
           duration: 3000,
         });
       });
     }
-    
+
     setPreviousUploadedFiles(currentFiles);
   }, [uploadedDocsQuery.data]);
 

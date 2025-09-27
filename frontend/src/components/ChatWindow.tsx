@@ -41,7 +41,6 @@ const ChatWindow = ({
   uploadedDocs = [],
   isUploading = false,
   generatedFiles = [],
-  userName = "User",
 }: ChatWindowProps) => {
   const [draft, setDraft] = useState<string>("");
   const [selectedDocument, setSelectedDocument] = useState<FileMetadata | null>(null);
@@ -223,7 +222,7 @@ const ChatWindow = ({
                     onChange={handleDraftChange}
                     onKeyDown={handleKeyDown}
                     className="max-h-32 min-h-[32px] flex-1 resize-none bg-transparent text-lg leading-8 text-gemini-text placeholder-gemini-textSoft focus:outline-none"
-                    placeholder="Message SUDAR (use @ to add context)"
+                    placeholder="Message Agent (use @ to add context)"
                     disabled={isSending}
                     rows={1}
                     style={{ height: '32px', lineHeight: '32px' }}
@@ -406,15 +405,21 @@ const ChatWindow = ({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto">
+      <div
+        className={
+          messages.length === 0
+            ? "flex-1 flex items-center justify-center overflow-y-auto"
+            : "flex-1 overflow-y-auto"
+        }
+      >
         <div className="mx-auto max-w-6xl px-4 py-6">
           {isLoadingHistory ? (
             <div className="flex h-full items-center justify-center">
               <LoadingSpinner label="Loading conversation" />
             </div>
           ) : messages.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center text-center">
-              <p className="mb-8 text-xl text-gemini-textSoft">How can I help you today?</p>
+            <div className="flex flex-col items-center justify-center text-center">
+              <h1 className="text-white font-bold text-3xl">How can I help you today?</h1>
             </div>
           ) : (
             <div className="space-y-6 pb-32">
@@ -426,7 +431,7 @@ const ChatWindow = ({
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gemini-surface">
                     <div className="h-1 w-1 animate-pulse rounded-full bg-gemini-accent"></div>
                   </div>
-                  <LoadingSpinner label="Sudar AI is thinking..." />
+                  <LoadingSpinner label="Thinking..." />
                 </div>
               )}
               <div ref={endRef} />
@@ -474,7 +479,7 @@ const ChatWindow = ({
                       onChange={handleDraftChange}
                       onKeyDown={handleKeyDown}
                       className="max-h-32 min-h-[28px] flex-1 resize-none bg-transparent text-lg leading-7 text-gemini-text placeholder-gemini-textSoft focus:outline-none"
-                      placeholder="Message SUDAR (use @ to add context)"
+                      placeholder="Message Agent (use @ to add context)"
                       disabled={isSending}
                       rows={1}
                       style={{ height: '28px', lineHeight: '28px' }}
