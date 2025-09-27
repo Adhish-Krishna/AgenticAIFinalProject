@@ -59,7 +59,8 @@ class ChatService:
                         "message_count": {"$sum": 1},
                         "first_message_time": {"$min": "$timestamp"},
                         "last_message_time": {"$max": "$timestamp"},
-                        "first_message": {"$first": "$message"}
+                        "first_message": {"$first": "$message"},
+                        "custom_chat_name": {"$first": "$custom_chat_name"}
                     }
                 },
                 {
@@ -70,9 +71,15 @@ class ChatService:
                         "last_message_time": 1,
                         "chat_name": {
                             "$cond": {
-                                "if": {"$gt": [{"$strLenCP": "$first_message"}, 50]},
-                                "then": {"$concat": [{"$substr": ["$first_message", 0, 50]}, "..."]},
-                                "else": "$first_message"
+                                "if": {"$ne": ["$custom_chat_name", None]},
+                                "then": "$custom_chat_name",
+                                "else": {
+                                    "$cond": {
+                                        "if": {"$gt": [{"$strLenCP": "$first_message"}, 50]},
+                                        "then": {"$concat": [{"$substr": ["$first_message", 0, 50]}, "..."]},
+                                        "else": "$first_message"
+                                    }
+                                }
                             }
                         },
                         "_id": 0
@@ -137,6 +144,18 @@ class ChatService:
         except Exception as e:
             print(f"Error getting chat summary: {e}")
             return None
+
+    def updateChatName(self, user_id: str, chat_id: str, new_name: str) -> bool:
+        """Updates the chat name by adding a custom_chat_name field to all messages in the chat"""
+        try:
+            result = self.collection.update_many(
+                {"user_id": user_id, "chat_id": chat_id},
+                {"$set": {"custom_chat_name": new_name}}
+            )
+            return result.modified_count > 0
+        except Exception as e:
+            print(f"Error updating chat name: {e}")
+            return False
 
     def deleteChatHistory(self, user_id: str, chat_id: str) -> bool:
         """Deletes all messages for a specific chat"""

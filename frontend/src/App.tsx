@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 
 import api from "./api/client";
-import type { AgentMessage, ChatMessageResponse, ChatSummary, FileMetadata } from "./api/types";
+import type { AgentMessage, ChatMessageResponse, ChatSummary, FileMetadata, UpdateChatNameResponse, DeleteChatResponse } from "./api/types";
 import ChatList from "./components/ChatList";
 import ChatWindow from "./components/ChatWindow";
 
@@ -98,6 +98,31 @@ const App = () => {
     },
   });
 
+  const updateChatNameMutation = useMutation({
+    mutationFn: async ({ chatId, chatName }: { chatId: string; chatName: string }) => {
+      const response = await api.put(`/api/chats/${chatId}/name`, { chat_name: chatName });
+      return response.data;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["chats"] });
+    },
+  });
+
+  const deleteChatMutation = useMutation({
+    mutationFn: async (chatId: string) => {
+      const response = await api.delete(`/api/chats/${chatId}`);
+      return response.data;
+    },
+    onSuccess: async (_, chatId) => {
+      await queryClient.invalidateQueries({ queryKey: ["chats"] });
+      // If the deleted chat was active, switch to another chat or null
+      if (activeChatId === chatId) {
+        const remainingChats = (chatsQuery.data || []).filter(chat => chat.chat_id !== chatId);
+        setActiveChatId(remainingChats.length > 0 ? remainingChats[0].chat_id : null);
+      }
+    },
+  });
+
   const handleCreateChat = async () => {
     try {
       const response = await api.get<{ next_chat_id: string }>("/api/chats/next-id");
@@ -132,6 +157,26 @@ const App = () => {
     await uploadMutation.mutateAsync(file);
   };
 
+  const handleUpdateChatName = async (chatId: string, chatName: string) => {
+    try {
+      await updateChatNameMutation.mutateAsync({ chatId, chatName });
+    } catch (error) {
+      console.error("Failed to update chat name", error);
+      throw error;
+    }
+  };
+
+  const handleDeleteChat = async (chatId: string) => {
+    if (window.confirm("Are you sure you want to delete this chat? This will permanently delete all messages, uploaded files, and generated content.")) {
+      try {
+        await deleteChatMutation.mutateAsync(chatId);
+      } catch (error) {
+        console.error("Failed to delete chat", error);
+        throw error;
+      }
+    }
+  };
+
   const activeMessages = useMemo(() => messagesQuery.data ?? [], [messagesQuery.data]);
   const generatedFiles = useMemo(() => generatedContentQuery.data ?? [], [generatedContentQuery.data]);
   const uploadedDocs = useMemo(() => uploadedDocsQuery.data ?? [], [uploadedDocsQuery.data]);
@@ -143,8 +188,12 @@ const App = () => {
         activeChatId={activeChatId}
         onSelectChat={setActiveChatId}
         onCreateChat={handleCreateChat}
+        onUpdateChatName={handleUpdateChatName}
+        onDeleteChat={handleDeleteChat}
         isLoading={chatsQuery.isLoading}
         collapsed={!sidebarOpen}
+        isUpdatingChatName={updateChatNameMutation.isPending}
+        isDeletingChat={deleteChatMutation.isPending}
       />
       <main className="flex-1 overflow-hidden">
         <header className="flex items-center justify-between border-b border-gemini-border bg-gemini-surface/50 px-6 py-3 backdrop-blur-sm">

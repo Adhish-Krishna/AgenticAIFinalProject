@@ -19,17 +19,22 @@ from envconfig import CHAT_ID, MINIO_BUCKET_NAME
 from .dependencies import (
     get_agent_lock,
     get_chat_service,
+    get_checkpoint_service,
     get_compiled_agent,
     get_default_user_id,
     get_minio_client,
+    get_vector_service,
 )
 from .schemas import (
     AgentMessage,
     ChatMessageRequest,
     ChatMessageResponse,
     ChatSummary,
+    DeleteChatResponse,
     FileMetadata,
     NextChatIdResponse,
+    UpdateChatNameRequest,
+    UpdateChatNameResponse,
     UploadResponse,
 )
 
@@ -241,6 +246,84 @@ async def send_message_to_agent(
         clear_user_chat_context()
 
     return ChatMessageResponse(messages=responses)
+
+
+@app.put("/api/chats/{chat_id}/name", response_model=UpdateChatNameResponse)
+async def update_chat_name(
+    chat_id: str,
+    payload: UpdateChatNameRequest,
+    user_id: str = Depends(get_default_user_id),
+    chat_service=Depends(get_chat_service),
+):
+    """Update the name of a specific chat"""
+    success = chat_service.updateChatName(user_id, chat_id, payload.chat_name)
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Chat not found or no changes made")
+    
+    return UpdateChatNameResponse(
+        success=True,
+        message="Chat name updated successfully",
+        chat_id=chat_id,
+        chat_name=payload.chat_name
+    )
+
+
+@app.delete("/api/chats/{chat_id}", response_model=DeleteChatResponse)
+async def delete_chat(
+    chat_id: str,
+    user_id: str = Depends(get_default_user_id),
+    chat_service=Depends(get_chat_service),
+    minio_client=Depends(get_minio_client),
+    vector_service=Depends(get_vector_service),
+    checkpoint_service=Depends(get_checkpoint_service),
+):
+    """Delete a chat and all associated files, messages, embeddings, and checkpoints"""
+    
+    # First, get count of files and messages for response
+    prefix = f"{user_id}/{chat_id}/"
+    files_to_delete = list(minio_client.list_objects(MINIO_BUCKET_NAME, prefix=prefix, recursive=True))
+    files_count = len(files_to_delete)
+    
+    # Get message count before deletion
+    chat_messages = chat_service.getUserChat(user_id, chat_id)
+    messages_count = len(chat_messages)
+    
+    if messages_count == 0:
+        raise HTTPException(status_code=404, detail="Chat not found")
+    
+    try:
+        # Delete all files associated with this chat from MinIO
+        for file_obj in files_to_delete:
+            try:
+                minio_client.remove_object(MINIO_BUCKET_NAME, file_obj.object_name)
+            except S3Error as e:
+                logger.warning(f"Failed to delete file {file_obj.object_name}: {e}")
+        
+        # Delete vector embeddings from Qdrant
+        embeddings_deleted = vector_service.delete_chat_embeddings(user_id, chat_id)
+        
+        # Delete LangGraph checkpoints from MongoDB
+        checkpoints_deleted = checkpoint_service.delete_chat_checkpoints(user_id, chat_id)
+        
+        # Delete chat history from MongoDB
+        chat_deleted = chat_service.deleteChatHistory(user_id, chat_id)
+        
+        if not chat_deleted:
+            raise HTTPException(status_code=500, detail="Failed to delete chat history")
+            
+        return DeleteChatResponse(
+            success=True,
+            message=f"Chat deleted successfully. Removed {messages_count} messages, {files_count} files, {embeddings_deleted} embeddings, and {checkpoints_deleted} checkpoints.",
+            deleted_files_count=files_count,
+            deleted_messages_count=messages_count,
+            deleted_embeddings_count=embeddings_deleted,
+            deleted_checkpoints_count=checkpoints_deleted
+        )
+        
+    except Exception as exc:
+        logger.exception(f"Failed to delete chat {chat_id}")
+        raise HTTPException(status_code=500, detail="Failed to delete chat") from exc
 
 
 @app.post("/api/files/upload", response_model=UploadResponse)

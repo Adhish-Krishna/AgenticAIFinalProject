@@ -47,3 +47,23 @@ class UploadResponse(BaseModel):
 
 class NextChatIdResponse(BaseModel):
     next_chat_id: str
+
+
+class UpdateChatNameRequest(BaseModel):
+    chat_name: str = Field(..., min_length=1, max_length=100, description="New name for the chat")
+
+
+class DeleteChatResponse(BaseModel):
+    success: bool
+    message: str
+    deleted_files_count: int = 0
+    deleted_messages_count: int = 0
+    deleted_embeddings_count: int = 0
+    deleted_checkpoints_count: int = 0
+
+
+class UpdateChatNameResponse(BaseModel):
+    success: bool
+    message: str
+    chat_id: str
+    chat_name: str

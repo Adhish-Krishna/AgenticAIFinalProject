@@ -9,6 +9,8 @@ from minio import Minio
 
 from agent.sudar import SUDARAgent
 from agent.services import ChatService
+from agent.services.vectorService import VectorService
+from agent.services.checkpointService import CheckpointService
 from envconfig import (
     MINIO_ACCESS_KEY,
     MINIO_BUCKET_NAME,
@@ -44,6 +46,16 @@ def get_minio_client() -> Minio:
 @lru_cache(maxsize=1)
 def get_chat_service() -> ChatService:
     return ChatService(db_name="SUDAR", collection_name="chat_history")
+
+
+@lru_cache(maxsize=1)
+def get_vector_service() -> VectorService:
+    return VectorService()
+
+
+@lru_cache(maxsize=1)
+def get_checkpoint_service() -> CheckpointService:
+    return CheckpointService(db_name="SUDAR")
 
 
 @lru_cache(maxsize=1)

@@ -359,7 +359,7 @@ const ChatWindow = ({
 
       {/* Chat Header with Files Button */}
       {chatId && (
-        <div className="flex items-center justify-end border-b border-gemini-border bg-gemini-bg px-4 py-3">
+        <div className="flex items-center flex-row justify-end px-4 py-3">
           <button
             onClick={() => setShowFilesPanel(!showFilesPanel)}
             className="rounded-lg border border-gemini-border bg-gemini-surface/30 p-2.5 text-gemini-text hover:bg-gemini-surface hover:text-white transition-all"

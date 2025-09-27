@@ -36,3 +36,23 @@ export interface UploadResponse {
 export interface ChatMessageRequest {
   message: string;
 }
+
+export interface UpdateChatNameRequest {
+  chat_name: string;
+}
+
+export interface UpdateChatNameResponse {
+  success: boolean;
+  message: string;
+  chat_id: string;
+  chat_name: string;
+}
+
+export interface DeleteChatResponse {
+  success: boolean;
+  message: string;
+  deleted_files_count: number;
+  deleted_messages_count: number;
+  deleted_embeddings_count: number;
+  deleted_checkpoints_count: number;
+}
