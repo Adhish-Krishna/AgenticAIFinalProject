@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import toast, { Toaster } from 'react-hot-toast';
 import dayjs from "dayjs";
 
 import api from "./api/client";
@@ -41,7 +42,30 @@ const App = () => {
       const response = await api.get<FileMetadata[]>(`/api/files/generated/${activeChatId}`);
       return response.data;
     },
+    refetchInterval: 5000, // Check for new files every 5 seconds
   });
+
+  // Track previous generated files count to detect new files
+  const [previousGeneratedCount, setPreviousGeneratedCount] = useState(0);
+  // Track previous uploaded files to detect when indexing is complete
+  const [previousUploadedFiles, setPreviousUploadedFiles] = useState<FileMetadata[]>([]);
+
+  useEffect(() => {
+    const currentCount = generatedContentQuery.data?.length || 0;
+    if (currentCount > previousGeneratedCount && previousGeneratedCount > 0) {
+      const newFilesCount = currentCount - previousGeneratedCount;
+      toast.success(
+        `${newFilesCount} new file${newFilesCount > 1 ? 's' : ''} generated!`,
+        {
+          icon: '📄',
+          duration: 3000,
+        }
+      );
+    }
+    setPreviousGeneratedCount(currentCount);
+  }, [generatedContentQuery.data, previousGeneratedCount]);
+
+
   
   const uploadedDocsQuery = useQuery<FileMetadata[]>({
     queryKey: ["uploaded-files", activeChatId],
@@ -53,6 +77,26 @@ const App = () => {
     },
     refetchInterval: 10_000,
   });
+
+  // Track when files are indexed (appear in uploaded files list)
+  useEffect(() => {
+    const currentFiles = uploadedDocsQuery.data || [];
+    
+    // Find newly appeared files by comparing file names
+    if (previousUploadedFiles.length > 0) {
+      const previousFileNames = new Set(previousUploadedFiles.map(f => f.file_name));
+      const newFiles = currentFiles.filter(f => !previousFileNames.has(f.file_name));
+      
+      newFiles.forEach(file => {
+        toast.success(`${file.file_name} has been indexed and ready for use!`, {
+          icon: '📚',
+          duration: 3000,
+        });
+      });
+    }
+    
+    setPreviousUploadedFiles(currentFiles);
+  }, [uploadedDocsQuery.data]);
 
   useEffect(() => {
     if (!activeChatId && chatsQuery.data && chatsQuery.data.length > 0) {
@@ -96,6 +140,10 @@ const App = () => {
       if (activeChatId && context?.previousMessages) {
         queryClient.setQueryData(["messages", activeChatId], context.previousMessages);
       }
+      
+      toast.error(`Failed to send message. ${err instanceof Error ? err.message : 'Please try again.'}`, {
+        duration: 4000,
+      });
     },
     onSuccess: async () => {
       if (!activeChatId) return;
@@ -112,44 +160,79 @@ const App = () => {
     mutationKey: ["upload", activeChatId],
     mutationFn: async (file: File) => {
       if (!activeChatId) throw new Error("Select a chat before uploading files");
+      
+      toast.loading(`Uploading ${file.name}...`, { id: 'file-upload' });
+      
       const payload = new FormData();
       payload.append("chat_id", activeChatId);
       payload.append("file", file);
       await api.post("/api/files/upload", payload, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+      
+      return file;
     },
-    onSuccess: async () => {
+    onSuccess: async (file) => {
+      toast.success(`${file.name} uploaded successfully!`, { id: 'file-upload' });
+      
       if (!activeChatId) return;
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["generated-files", activeChatId] }),
         queryClient.invalidateQueries({ queryKey: ["uploaded-files", activeChatId] }),
       ]);
     },
+    onError: (error, file) => {
+      toast.error(`Failed to upload ${file.name}. ${error instanceof Error ? error.message : 'Please try again.'}`, { 
+        id: 'file-upload',
+        duration: 5000 
+      });
+    },
   });
 
   const updateChatNameMutation = useMutation({
     mutationFn: async ({ chatId, chatName }: { chatId: string; chatName: string }) => {
       const response = await api.put(`/api/chats/${chatId}/name`, { chat_name: chatName });
-      return response.data;
+      return { ...response.data, chatName };
     },
-    onSuccess: async () => {
+    onSuccess: async (data) => {
+      toast.success(`Chat renamed to "${data.chatName}"`, {
+        icon: '✏️',
+        duration: 2000,
+      });
       await queryClient.invalidateQueries({ queryKey: ["chats"] });
+    },
+    onError: (error) => {
+      toast.error(`Failed to rename chat. ${error instanceof Error ? error.message : 'Please try again.'}`, {
+        duration: 4000,
+      });
     },
   });
 
   const deleteChatMutation = useMutation({
     mutationFn: async (chatId: string) => {
+      toast.loading('Deleting chat...', { id: `delete-${chatId}` });
       const response = await api.delete(`/api/chats/${chatId}`);
       return response.data;
     },
     onSuccess: async (_, chatId) => {
+      toast.success('Chat deleted successfully!', { 
+        id: `delete-${chatId}`,
+        icon: '🗑️',
+        duration: 2000,
+      });
+      
       await queryClient.invalidateQueries({ queryKey: ["chats"] });
       // If the deleted chat was active, switch to another chat or null
       if (activeChatId === chatId) {
         const remainingChats = (chatsQuery.data || []).filter(chat => chat.chat_id !== chatId);
         setActiveChatId(remainingChats.length > 0 ? remainingChats[0].chat_id : null);
       }
+    },
+    onError: (error, chatId) => {
+      toast.error(`Failed to delete chat. ${error instanceof Error ? error.message : 'Please try again.'}`, { 
+        id: `delete-${chatId}`,
+        duration: 4000,
+      });
     },
   });
 
@@ -172,8 +255,16 @@ const App = () => {
           ...prev,
         ];
       });
+      
+      toast.success('New chat created!', {
+        icon: '💬',
+        duration: 2000,
+      });
     } catch (error) {
       console.error("Failed to create chat", error);
+      toast.error('Failed to create new chat. Please try again.', {
+        duration: 4000,
+      });
     }
   };
 
@@ -245,14 +336,44 @@ const App = () => {
   };
 
   const handleDeleteChat = async (chatId: string) => {
-    if (window.confirm("Are you sure you want to delete this chat? This will permanently delete all messages, uploaded files, and generated content.")) {
-      try {
-        await deleteChatMutation.mutateAsync(chatId);
-      } catch (error) {
-        console.error("Failed to delete chat", error);
-        throw error;
-      }
-    }
+    // Show confirmation toast
+    toast((t) => (
+      <div className="flex flex-col gap-3">
+        <div>
+          <p className="font-medium text-gemini-text">Delete Chat?</p>
+          <p className="text-sm text-gemini-textSoft mt-1">
+            This will permanently delete all messages, uploaded files, and generated content.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+            onClick={() => {
+              toast.dismiss(t.id);
+              deleteChatMutation.mutate(chatId);
+            }}
+          >
+            Delete
+          </button>
+          <button
+            className="bg-gemini-border hover:bg-gemini-surface text-gemini-text px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+            onClick={() => toast.dismiss(t.id)}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: 10000,
+      style: {
+        background: '#1f1f1f', // gemini-surface
+        color: '#e8eaed', // gemini-text
+        border: '1px solid #2d2d30', // gemini-border
+        borderRadius: '12px',
+        maxWidth: '400px',
+        padding: '16px',
+      },
+    });
   };
 
   const activeMessages = useMemo(() => messagesQuery.data ?? [], [messagesQuery.data]);
@@ -304,6 +425,55 @@ const App = () => {
           />
         </div>
       </main>
+      <Toaster 
+        position="bottom-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#1f1f1f', // gemini-surface
+            color: '#e8eaed', // gemini-text
+            border: '1px solid #2d2d30', // gemini-border
+            borderRadius: '12px',
+            fontSize: '14px',
+            fontWeight: '500',
+          },
+          success: {
+            duration: 3000,
+            style: {
+              background: '#1f1f1f',
+              color: '#e8eaed',
+              border: '1px solid #4ade80', // green accent
+            },
+            iconTheme: {
+              primary: '#4ade80', // success green
+              secondary: '#1f1f1f',
+            },
+          },
+          error: {
+            duration: 5000,
+            style: {
+              background: '#1f1f1f',
+              color: '#e8eaed',
+              border: '1px solid #ef4444', // error red
+            },
+            iconTheme: {
+              primary: '#ef4444', // error red
+              secondary: '#1f1f1f',
+            },
+          },
+          loading: {
+            style: {
+              background: '#1f1f1f',
+              color: '#e8eaed',
+              border: '1px solid #8ab4f8', // gemini-accent
+            },
+            iconTheme: {
+              primary: '#8ab4f8', // gemini-accent
+              secondary: '#1f1f1f',
+            },
+          },
+        }}
+      />
     </div>
   );
 };

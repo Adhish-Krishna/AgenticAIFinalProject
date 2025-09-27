@@ -1,4 +1,4 @@
-import { FC, useState } from "react";
+import { FC, useState, useEffect, useRef } from "react";
 import clsx from "clsx";
 import dayjs from "dayjs";
 import type { ChatSummary } from "../api/types";
@@ -31,6 +31,21 @@ const ChatList: FC<ChatListProps> = ({
 }: ChatListProps) => {
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editingChatName, setEditingChatName] = useState<string>("");
+  const [openMenuChatId, setOpenMenuChatId] = useState<string | null>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openMenuChatId) {
+        setOpenMenuChatId(null);
+      }
+    };
+
+    if (openMenuChatId) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [openMenuChatId]);
 
   const containerClasses = clsx(
     "flex h-full flex-col border-r border-gemini-border bg-gemini-bg transition-all duration-300",
@@ -150,7 +165,10 @@ const ChatList: FC<ChatListProps> = ({
                   <div className="relative">
                     <button
                       type="button"
-                      onClick={() => onSelectChat(chat.chat_id)}
+                      onClick={() => {
+                        setOpenMenuChatId(null);
+                        onSelectChat(chat.chat_id);
+                      }}
                       className={clsx(
                         "relative w-full rounded-lg p-3 text-left transition",
                         activeChatId === chat.chat_id
@@ -176,39 +194,62 @@ const ChatList: FC<ChatListProps> = ({
                       )}
                     </button>
                     
-                    {/* Action buttons */}
-                    <div className="absolute right-1 top-1 flex opacity-0 transition-opacity group-hover:opacity-100">
-                      {onUpdateChatName && (
+                    {/* Three-dot menu */}
+                    <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
+                      <div className="relative">
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleStartEditing(chat.chat_id, chat.chat_name || `Chat ${chat.chat_id}`);
+                            setOpenMenuChatId(openMenuChatId === chat.chat_id ? null : chat.chat_id);
                           }}
-                          className="rounded p-1 text-xs text-gemini-textSoft hover:bg-gemini-border hover:text-gemini-text"
-                          title="Edit chat name"
+                          className="rounded-full p-1 text-gemini-textSoft hover:bg-gemini-border hover:text-gemini-text"
+                          title="More options"
                         >
-                          <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
                           </svg>
                         </button>
-                      )}
-                      {onDeleteChat && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteChat(chat.chat_id);
-                          }}
-                          disabled={isDeletingChat}
-                          className="rounded p-1 text-xs text-gemini-textSoft hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
-                          title="Delete chat"
-                        >
-                          <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      )}
+                        
+                        {/* Dropdown menu */}
+                        {openMenuChatId === chat.chat_id && (
+                          <div className="absolute right-0 top-8 z-50 w-32 rounded-lg border border-gemini-border bg-gemini-surface py-1 shadow-lg">
+                            {onUpdateChatName && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuChatId(null);
+                                  handleStartEditing(chat.chat_id, chat.chat_name || `Chat ${chat.chat_id}`);
+                                }}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gemini-text hover:bg-gemini-border"
+                              >
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                Edit
+                              </button>
+                            )}
+                            {onDeleteChat && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuChatId(null);
+                                  handleDeleteChat(chat.chat_id);
+                                }}
+                                disabled={isDeletingChat}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 disabled:opacity-50"
+                              >
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Delete
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}

@@ -1,4 +1,5 @@
 import { ChangeEvent, FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import toast from 'react-hot-toast';
 import clsx from "clsx";
 import dayjs from "dayjs";
 import type { AgentMessage, FileMetadata } from "../api/types";
@@ -40,7 +41,6 @@ const ChatWindow = ({
   userName = "User",
 }: ChatWindowProps) => {
   const [draft, setDraft] = useState<string>("");
-  const [error, setError] = useState<string | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<FileMetadata | null>(null);
   const [isMentionOpen, setIsMentionOpen] = useState<boolean>(false);
   const [mentionQuery, setMentionQuery] = useState<string>("");
@@ -116,7 +116,9 @@ const ChatWindow = ({
   const sendCurrentMessage = async () => {
     const trimmed = draft.trim();
     if (!trimmed) {
-      setError("Type something to send");
+      toast.error("Please type a message before sending", {
+        duration: 2000,
+      });
       return;
     }
 
@@ -125,7 +127,6 @@ const ChatWindow = ({
       : trimmed;
 
     try {
-      setError(null);
       // Clear the input immediately for better UX
       setDraft("");
       setSelectedDocument(null);
@@ -134,7 +135,6 @@ const ChatWindow = ({
       // Send the message (optimistic update will handle UI)
       await onSendMessage(messageWithContext);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send message");
       // On error, restore the draft
       setDraft(trimmed);
     }
@@ -177,14 +177,13 @@ const ChatWindow = ({
 
   if (!chatId) {
     return (
-      <div className="flex h-full flex-col items-center justify-center px-8">
-        <div className="flex h-full max-w-3xl flex-col items-center justify-center text-center">
+      <div className="flex h-full flex-col items-center justify-center px-4">
+        <div className="flex h-full w-full flex-col items-center justify-center text-center">
           <div className="mb-12">
-            <h1 className="mb-4 text-5xl font-medium text-gemini-text">Hello, {userName}</h1>
-            <p className="text-xl text-gemini-textSoft">How can I help you today?</p>
+            <h1 className="text-3xl font-bold">How can I help you today?</h1>
           </div>
-          <div className="w-full">
-            <div className="relative mx-auto max-w-3xl">
+          <div className="w-full max-w-6xl">
+            <div className="relative w-full">
               <form onSubmit={handleSubmit}>
                 <div className="rounded-full border border-gemini-border bg-gemini-surface p-1.5">
                   <div className="flex items-center gap-3 px-6 py-3">
@@ -378,14 +377,13 @@ const ChatWindow = ({
       )}
 
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-4xl px-4 py-6">
+        <div className="mx-auto max-w-6xl px-4 py-6">
           {isLoadingHistory ? (
             <div className="flex h-full items-center justify-center">
               <LoadingSpinner label="Loading conversation" />
             </div>
           ) : messages.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-center">
-              <h1 className="mb-4 text-4xl font-medium text-gemini-text">Hello, {userName}</h1>
               <p className="mb-8 text-xl text-gemini-textSoft">How can I help you today?</p>
             </div>
           ) : (
@@ -560,7 +558,6 @@ const ChatWindow = ({
                 )}
               </div>
             </div>
-            {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
           </form>
         </div>
       </div>
