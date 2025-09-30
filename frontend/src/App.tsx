@@ -390,6 +390,7 @@ const App = () => {
         maxWidth: '400px',
         padding: '16px',
       },
+      position: "top-center"
     });
   };
 

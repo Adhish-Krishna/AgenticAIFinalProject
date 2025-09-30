@@ -7,7 +7,7 @@
 
 # AI Agent Setup
 
-This guide will walk you through the setup process for the Sudar AI Agent project.
+This guide will walk you through the setup process for the Teach Assist AI Agent project.
 
 ## Prerequisites
 
@@ -111,11 +111,3 @@ The `frontend` folder contains a Vite + React interface for managing chats.
 3. Open the printed URL (defaults to `http://localhost:5173`).
 
 Use the UI to create new conversations, upload files, and interact with the agent. The interface assumes a single demo user and derives the base chat ID from environment configuration.
-
-### Optional: Terminal chat experience
-
-If you prefer the original CLI interaction, you can still launch it from the project root after activating the virtual environment:
-
-```bash
-python -m agent.terminalChat
-```
